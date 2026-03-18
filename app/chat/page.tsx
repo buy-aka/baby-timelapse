@@ -3,7 +3,7 @@
 import Timeline from '@/components/timeline'
 import UploadPhoto from '@/components/upload-photo'
 import { createClient } from '@/lib/supabase/client'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 
 export default function Page() {
   const [notes, setNotes] = useState<any[] | null>(null)
@@ -18,7 +18,9 @@ export default function Page() {
   }, [])
 
   return <>
+    <Suspense>
     <Timeline/>
+      </Suspense>
     <UploadPhoto/>
   </>
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "./ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "./logout-button";
+import { redirect } from "next/navigation";
 
 export async function AuthButton() {
   const supabase = await createClient();
@@ -10,10 +11,9 @@ export async function AuthButton() {
   const { data } = await supabase.auth.getClaims();
 
   const user = data?.claims;
-
+  if (user !== undefined) redirect("/chat")
   return user ? (
     <div className="flex items-center gap-4">
-      Hey, {user.email}!
       <LogoutButton />
     </div>
   ) : (
