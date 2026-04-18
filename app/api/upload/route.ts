@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
   const serverRes = await fetch(`${process.env.UPLOAD_SERVER_URL}/upload`, {
     method: "POST",
-    headers: { "x-upload-secret": process.env.UPLOAD_SECRET! },
+    headers: { "x-upload-secret": Buffer.from(process.env.UPLOAD_SECRET!).toString("base64") },
     body: serverForm,
   })
 
