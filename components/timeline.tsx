@@ -13,6 +13,15 @@ interface BabyPhoto {
   note?: string
 }
 
+function toProxyUrl(fileNameOrUrl: string) {
+  // http://... эсвэл https://... бол filename-г задлаад proxy болгоно
+  if (fileNameOrUrl.startsWith("http")) {
+    const filename = fileNameOrUrl.split("/").pop()
+    return `/api/image/${filename}`
+  }
+  return `/api/image/${fileNameOrUrl}`
+}
+
 interface EditState {
   note: string
   photo_date: string
@@ -57,7 +66,7 @@ function PhotoCard({
           </div>
         ) : (
           <img
-            src={photo.file_name}
+            src={toProxyUrl(photo.file_name)}
             alt={photo.note || date}
             loading="lazy"
             onError={() => setImgError(true)}
