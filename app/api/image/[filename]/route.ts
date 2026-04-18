@@ -1,28 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
-import sharp from "sharp"
 
 export async function GET(
-  request: NextRequest,
+  _: NextRequest,
   { params }: { params: Promise<{ filename: string }> }
 ) {
   const { filename } = await params
-  const { searchParams } = new URL(request.url)
-  const width = Math.min(parseInt(searchParams.get("w") || "800"), 1600)
-
   const url = `${process.env.UPLOAD_SERVER_URL}/uploads/${filename}`
+
   const res = await fetch(url)
   if (!res.ok) return new NextResponse("Not found", { status: 404 })
 
-  const buffer = Buffer.from(await res.arrayBuffer())
-
-  const optimized = await sharp(buffer)
-    .resize({ width, withoutEnlargement: true })
-    .webp({ quality: 80 })
-    .toBuffer()
-
-  return new NextResponse(new Uint8Array(optimized), {
+  const buffer = await res.arrayBuffer()
+  return new NextResponse(buffer, {
     headers: {
-      "Content-Type": "image/webp",
+      "Content-Type": res.headers.get("Content-Type") || "image/jpeg",
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   })
