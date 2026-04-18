@@ -1,19 +1,15 @@
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
 import { LogoutButton } from "./logout-button";
-import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 export async function AuthButton() {
-  const supabase = await createClient();
+  const session = await auth.api.getSession({ headers: await headers() });
 
-  // You can also use getUser() which will be slower.
-  const { data } = await supabase.auth.getClaims();
-
-  const user = data?.claims;
-  if (user !== undefined) redirect("/chat")
-  return user ? (
+  return session ? (
     <div className="flex items-center gap-4">
+      <span className="text-sm">{session.user.email}</span>
       <LogoutButton />
     </div>
   ) : (
