@@ -18,21 +18,48 @@ export default function UploadPhoto({ onUploaded }: { onUploaded?: () => void })
 
   const compressImage = (f: File): Promise<File> =>
     new Promise((resolve) => {
+      const TARGET = 4 * 1024 * 1024 // 4MB — Верцелийн 4.5MB хязгаараас доор
       const img = new Image()
       const url = URL.createObjectURL(f)
-      img.onload = () => {
-        const MAX = 7200
-        const scale = Math.min(1, MAX / Math.max(img.width, img.height))
-        const canvas = document.createElement("canvas")
-        canvas.width = Math.round(img.width * scale)
-        canvas.height = Math.round(img.height * scale)
-        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+      img.onload = async () => {
         URL.revokeObjectURL(url)
-        canvas.toBlob(
-          (blob) => resolve(new File([blob!], f.name, { type: "image/jpeg" })),
-          "image/jpeg", 0.94
-        )
+
+        // Файл аль хэдийн хангалттай жижиг бол шахахгүй
+        if (f.size <= TARGET) { resolve(f); return }
+
+        const toBlob = (w: number, h: number, q: number): Promise<Blob> =>
+          new Promise((res) => {
+            const canvas = document.createElement("canvas")
+            canvas.width = w; canvas.height = h
+            canvas.getContext("2d")!.drawImage(img, 0, 0, w, h)
+            canvas.toBlob((b) => res(b!), "image/jpeg", q)
+          })
+
+        // Эхний таамаглал: файлын хэмжээний харьцаагаар scale тооцно
+        let scale = Math.sqrt(TARGET / f.size)
+        let quality = 0.92
+        let w = Math.round(img.width * scale)
+        let h = Math.round(img.height * scale)
+
+        let blob = await toBlob(w, h, quality)
+
+        // Хэтэрсэн бол чанар болон хэмжээг ижил дарааллаар бууруулна
+        while (blob.size > TARGET && quality > 0.3) {
+          quality -= 0.08
+          blob = await toBlob(w, h, quality)
+
+          // Чанар хангалтгүй болвол хэмжээг ч бас багасгана
+          if (blob.size > TARGET && quality <= 0.5) {
+            scale *= 0.8
+            w = Math.round(img.width * scale)
+            h = Math.round(img.height * scale)
+          }
+        }
+
+        resolve(new File([blob], f.name, { type: "image/jpeg" }))
       }
+
       img.src = url
     })
 
