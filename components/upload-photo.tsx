@@ -21,7 +21,7 @@ export default function UploadPhoto({ onUploaded }: { onUploaded?: () => void })
       const img = new Image()
       const url = URL.createObjectURL(f)
       img.onload = () => {
-        const MAX = 9600
+        const MAX = 7200
         const scale = Math.min(1, MAX / Math.max(img.width, img.height))
         const canvas = document.createElement("canvas")
         canvas.width = Math.round(img.width * scale)
@@ -30,7 +30,7 @@ export default function UploadPhoto({ onUploaded }: { onUploaded?: () => void })
         URL.revokeObjectURL(url)
         canvas.toBlob(
           (blob) => resolve(new File([blob!], f.name, { type: "image/jpeg" })),
-          "image/jpeg", 0.96
+          "image/jpeg", 0.94
         )
       }
       img.src = url
