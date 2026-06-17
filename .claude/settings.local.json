@@ -1,7 +1,29 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(docker exec *)",
+      "Bash(npx drizzle-kit *)",
+      "Bash(docker cp *)",
+      "Bash(npm uninstall *)",
+      "Bash(ls \"/c/Users/USER/Downloads/uploads\" 2>&1 | head -20 && echo --- && ls \"/c/Users/USER/Downloads/uploads\" 2>&1 | wc -l)",
+      "Read(//c/Users/USER/Downloads/uploads/**)",
+      "Bash(docker run *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm --entrypoint sh -v \"C:/Users/USER/Downloads/uploads:/data:ro\" minio/mc:latest -c \"ls /data | head -3 && echo --- && ls /data | wc -l\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm --network baby-timelapse_default --entrypoint sh -v \"C:/Users/USER/Downloads/uploads:/data:ro\" minio/mc:latest -c \"mc alias set local http://minio:9000 minioadmin minioadmin && mc cp --recursive /data/ local/baby-photos/\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm --network baby-timelapse_default --entrypoint sh minio/mc:latest -c \"mc alias set local http://minio:9000 minioadmin minioadmin 2>/dev/null && mc ls local/baby-photos | wc -l\")",
+      "Bash(until grep *)",
+      "Read(//c/Users/USER/AppData/Local/Temp/claude/d--NEXTJS-baby-timelapse/dbaa50c8-2558-4a4d-a00f-209d6c80f7b7/tasks/**)",
+      "Bash(netstat -ano)",
+      "Bash(powershell -Command \"Get-Process -Id 28364 | Select-Object Name, Id, Path\")",
+      "Bash(curl -s http://localhost:3001/api/auth/session)",
+      "Bash(curl -s -c /tmp/userA.cookies -X POST http://localhost:3001/api/auth/sign-up/email -H \"Content-Type: application/json\" -d '{\"email\":\"agii@test.mn\",\"password\":\"password123\",\"name\":\"Agii\"}')",
+      "Bash(cp \"/c/Users/USER/Downloads/uploads/1773494740527.jpg\" /tmp/test.jpg)",
+      "Bash(curl -s -b /tmp/userA.cookies -X POST http://localhost:3001/api/upload -F \"file=@/tmp/test.jpg\" -F \"note=A-ийн зураг\" -F \"photoDate=2026-05-20\")"
     ]
   }
 }

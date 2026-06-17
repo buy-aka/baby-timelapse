@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import pool from "@/lib/db"
+import { db } from "@/lib/db"
+import { babyPhotos } from "@/lib/db/schema"
+import { uploadObject } from "@/lib/storage"
+import { getUserDefaultBaby, userCanAccessBaby } from "@/lib/tenant"
 import { headers } from "next/headers"
 
 export async function POST(request: NextRequest) {
@@ -13,32 +16,39 @@ export async function POST(request: NextRequest) {
   const file = formData.get("file") as File
   const note = (formData.get("note") as string) || ""
   const photoDate = formData.get("photoDate") as string
+  const babyIdInput = formData.get("babyId") as string | null
 
   if (!file || !photoDate) {
     return NextResponse.json({ error: "file болон photoDate шаардлагатай" }, { status: 400 })
   }
 
-  // Файлыг серверт дамжуулах
-  const serverForm = new FormData()
-  serverForm.append("file", file)
-
-  const serverRes = await fetch(`${process.env.UPLOAD_SERVER_URL}/upload`, {
-    method: "POST",
-    headers: { "x-upload-secret": Buffer.from(process.env.UPLOAD_SECRET!).toString("base64") },
-    body: serverForm,
-  })
-
-  if (!serverRes.ok) {
-    return NextResponse.json({ error: "Upload сервер алдаа гарлаа" }, { status: 500 })
+  // Аль baby-ийн зураг болохыг тогтооно
+  let babyId: string | null
+  if (babyIdInput) {
+    const ok = await userCanAccessBaby(session.user.id, babyIdInput)
+    if (!ok) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    babyId = babyIdInput
+  } else {
+    babyId = await getUserDefaultBaby(session.user.id)
   }
 
-  const { url } = await serverRes.json()
+  if (!babyId) {
+    return NextResponse.json({ error: "Baby олдсонгүй" }, { status: 400 })
+  }
 
-  await pool.query(
-    `INSERT INTO baby_photos (id, photo_date, file_name, note, created_at)
-     VALUES (gen_random_uuid(), $1, $2, $3, NOW())`,
-    [photoDate, url, note]
-  )
+  const ext = file.name.split(".").pop() || "jpg"
+  const key = `${Date.now()}.${ext}`
 
-  return NextResponse.json({ success: true, url })
+  const buffer = Buffer.from(await file.arrayBuffer())
+  await uploadObject(key, buffer, file.type || "image/jpeg")
+
+  await db.insert(babyPhotos).values({
+    babyId,
+    uploadedBy: session.user.id,
+    photoDate,
+    fileName: key,
+    note,
+  })
+
+  return NextResponse.json({ success: true, fileName: key })
 }

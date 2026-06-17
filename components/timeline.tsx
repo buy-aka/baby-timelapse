@@ -109,7 +109,7 @@ function PhotoCard({
 }
 
 /* ─── Grid горим ────────────────────────────────────── */
-function GridView({ onDelete, onSave }: { onDelete: (id: string) => void; onSave: (id: string, s: EditState) => Promise<void> }) {
+function GridView({ babyId, onDelete, onSave }: { babyId?: string | null; onDelete: (id: string) => void; onSave: (id: string, s: EditState) => Promise<void> }) {
   const [photos, setPhotos] = useState<BabyPhoto[]>([])
   const [startDate, setStartDate] = useState<string>("")
   const [loading, setLoading] = useState(true)
@@ -117,9 +117,11 @@ function GridView({ onDelete, onSave }: { onDelete: (id: string) => void; onSave
   useEffect(() => {
     if (!startDate) { setStartDate(new Date().toISOString().split("T")[0]); return }
     setLoading(true)
-    fetch(`/api/photos?startDate=${startDate}`)
+    const qs = new URLSearchParams({ startDate })
+    if (babyId) qs.set("babyId", babyId)
+    fetch(`/api/photos?${qs}`)
       .then(r => r.json()).then(setPhotos).finally(() => setLoading(false))
-  }, [startDate])
+  }, [startDate, babyId])
 
   const handleDelete = (id: string) => { onDelete(id); setPhotos(p => p.filter(x => x.id !== id)) }
   const handleSave = async (id: string, s: EditState) => { await onSave(id, s); setPhotos(p => p.map(x => x.id === id ? { ...x, ...s } : x)) }
@@ -140,7 +142,7 @@ function GridView({ onDelete, onSave }: { onDelete: (id: string) => void; onSave
 }
 
 /* ─── Feed горим ────────────────────────────────────── */
-function FeedView({ onDelete, onSave }: { onDelete: (id: string) => void; onSave: (id: string, s: EditState) => Promise<void> }) {
+function FeedView({ babyId, onDelete, onSave }: { babyId?: string | null; onDelete: (id: string) => void; onSave: (id: string, s: EditState) => Promise<void> }) {
   const [photos, setPhotos] = useState<BabyPhoto[]>([])
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
@@ -151,13 +153,15 @@ function FeedView({ onDelete, onSave }: { onDelete: (id: string) => void; onSave
   const loadMore = useCallback(async () => {
     if (loading || !hasMore || !today) return
     setLoading(true)
-    const res = await fetch(`/api/photos?startDate=${today}&offset=${offset}`)
+    const qs = new URLSearchParams({ startDate: today, offset: String(offset) })
+    if (babyId) qs.set("babyId", babyId)
+    const res = await fetch(`/api/photos?${qs}`)
     const data: BabyPhoto[] = await res.json()
     setPhotos(p => [...p, ...data])
     setOffset(o => o + data.length)
     if (data.length < 10) setHasMore(false)
     setLoading(false)
-  }, [loading, hasMore, offset])
+  }, [loading, hasMore, offset, today, babyId])
 
   useEffect(() => { loadMore() }, [])
 
@@ -183,7 +187,7 @@ function FeedView({ onDelete, onSave }: { onDelete: (id: string) => void; onSave
 }
 
 /* ─── On This Day горим ─────────────────────────────── */
-function OnThisDayView({ onDelete, onSave }: { onDelete: (id: string) => void; onSave: (id: string, s: EditState) => Promise<void> }) {
+function OnThisDayView({ babyId, onDelete, onSave }: { babyId?: string | null; onDelete: (id: string) => void; onSave: (id: string, s: EditState) => Promise<void> }) {
   const [sections, setSections] = useState<{ label: string; date: string; photos: BabyPhoto[] }[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -200,7 +204,9 @@ function OnThisDayView({ onDelete, onSave }: { onDelete: (id: string) => void; o
 
     Promise.all(
       targets.map(async t => {
-        const res = await fetch(`/api/photos?exactDate=${t.date}`)
+        const qs = new URLSearchParams({ exactDate: t.date })
+        if (babyId) qs.set("babyId", babyId)
+        const res = await fetch(`/api/photos?${qs}`)
         const photos: BabyPhoto[] = await res.json()
         return { ...t, photos }
       })
@@ -208,7 +214,7 @@ function OnThisDayView({ onDelete, onSave }: { onDelete: (id: string) => void; o
       setSections(results.filter(s => s.photos.length > 0))
       setLoading(false)
     })
-  }, [])
+  }, [babyId])
 
   if (loading) return <Skeleton />
   if (sections.length === 0) return <Empty />
@@ -237,7 +243,7 @@ function OnThisDayView({ onDelete, onSave }: { onDelete: (id: string) => void; o
 }
 
 /* ─── Compare горим ─────────────────────────────────── */
-function CompareView() {
+function CompareView({ babyId }: { babyId?: string | null }) {
   const [dateA, setDateA] = useState("")
   const [dateB, setDateB] = useState("")
 
@@ -251,12 +257,18 @@ function CompareView() {
   const [photosB, setPhotosB] = useState<BabyPhoto[]>([])
 
   useEffect(() => {
-    fetch(`/api/photos?exactDate=${dateA}`).then(r => r.json()).then(setPhotosA)
-  }, [dateA])
+    if (!dateA) return
+    const qs = new URLSearchParams({ exactDate: dateA })
+    if (babyId) qs.set("babyId", babyId)
+    fetch(`/api/photos?${qs}`).then(r => r.json()).then(setPhotosA)
+  }, [dateA, babyId])
 
   useEffect(() => {
-    fetch(`/api/photos?exactDate=${dateB}`).then(r => r.json()).then(setPhotosB)
-  }, [dateB])
+    if (!dateB) return
+    const qs = new URLSearchParams({ exactDate: dateB })
+    if (babyId) qs.set("babyId", babyId)
+    fetch(`/api/photos?${qs}`).then(r => r.json()).then(setPhotosB)
+  }, [dateB, babyId])
 
   const col = (photos: BabyPhoto[], date: string, setDate: (d: string) => void) => (
     <div className="flex-1 min-w-0">
@@ -303,7 +315,7 @@ const MODES: { id: ViewMode; label: string; icon: React.ReactNode }[] = [
   { id: "compare",   label: "Харьцуулах", icon: <GitCompare size={15} /> },
 ]
 
-export default function Timeline({ refreshKey }: { refreshKey?: number }) {
+export default function Timeline({ babyId }: { babyId?: string | null }) {
   const [mode, setMode] = useState<ViewMode>("grid")
 
   const deletePhoto = async (id: string) => {
@@ -339,10 +351,10 @@ export default function Timeline({ refreshKey }: { refreshKey?: number }) {
       </div>
 
       {/* Content */}
-      {mode === "grid"      && <GridView      key={refreshKey} onDelete={deletePhoto} onSave={savePhoto} />}
-      {mode === "feed"      && <FeedView      key={refreshKey} onDelete={deletePhoto} onSave={savePhoto} />}
-      {mode === "onthisday" && <OnThisDayView key={refreshKey} onDelete={deletePhoto} onSave={savePhoto} />}
-      {mode === "compare"   && <CompareView />}
+      {mode === "grid"      && <GridView      babyId={babyId} onDelete={deletePhoto} onSave={savePhoto} />}
+      {mode === "feed"      && <FeedView      babyId={babyId} onDelete={deletePhoto} onSave={savePhoto} />}
+      {mode === "onthisday" && <OnThisDayView babyId={babyId} onDelete={deletePhoto} onSave={savePhoto} />}
+      {mode === "compare"   && <CompareView   babyId={babyId} />}
     </div>
   )
 }

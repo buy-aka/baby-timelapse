@@ -1,7 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import pool from "@/lib/db"
+import { db } from "@/lib/db"
+import { babyPhotos } from "@/lib/db/schema"
+import { getUserBabyIds } from "@/lib/tenant"
+import { and, eq, inArray } from "drizzle-orm"
 import { headers } from "next/headers"
+
+async function userOwnsPhoto(userId: string, photoId: string): Promise<boolean> {
+  const babyIds = await getUserBabyIds(userId)
+  if (babyIds.length === 0) return false
+
+  const [row] = await db
+    .select({ id: babyPhotos.id })
+    .from(babyPhotos)
+    .where(and(eq(babyPhotos.id, photoId), inArray(babyPhotos.babyId, babyIds)))
+    .limit(1)
+  return !!row
+}
 
 export async function DELETE(
   request: NextRequest,
@@ -14,10 +29,14 @@ export async function DELETE(
 
   const { id } = await params
 
-  await pool.query(
-    `UPDATE baby_photos SET deleted_at = NOW() WHERE id = $1`,
-    [id]
-  )
+  if (!(await userOwnsPhoto(session.user.id, id))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  await db
+    .update(babyPhotos)
+    .set({ deletedAt: new Date() })
+    .where(eq(babyPhotos.id, id))
 
   return NextResponse.json({ success: true })
 }
@@ -32,12 +51,17 @@ export async function PATCH(
   }
 
   const { id } = await params
+
+  if (!(await userOwnsPhoto(session.user.id, id))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
   const { note, photo_date } = await request.json()
 
-  await pool.query(
-    `UPDATE baby_photos SET note = $1, photo_date = $2 WHERE id = $3`,
-    [note, photo_date, id]
-  )
+  await db
+    .update(babyPhotos)
+    .set({ note, photoDate: photo_date })
+    .where(eq(babyPhotos.id, id))
 
   return NextResponse.json({ success: true })
 }

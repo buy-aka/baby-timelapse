@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.env.local
+.env.production.local
+Dockerfile
+.dockerignore
+docker-compose*.yml
+deploy
+README.md
+*.md
+.vscode
+.idea
+.claude
+baby_photos_rows.sql

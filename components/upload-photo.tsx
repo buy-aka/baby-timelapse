@@ -5,9 +5,8 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ImagePlus, CalendarIcon, Upload, X } from "lucide-react";
-import { format } from "date-fns";
 
-export default function UploadPhoto({ onUploaded }: { onUploaded?: () => void }) {
+export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | null; onUploaded?: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -92,6 +91,7 @@ export default function UploadPhoto({ onUploaded }: { onUploaded?: () => void })
     formData.append("file", file);
     formData.append("note", note);
     formData.append("photoDate", photoDate);
+    if (babyId) formData.append("babyId", babyId);
 
     const res = await fetch("/api/upload", { method: "POST", body: formData });
 
