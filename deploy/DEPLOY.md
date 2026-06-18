@@ -16,8 +16,8 @@ Internet ─▶ :80/:443 ─▶ Nginx ─▶ Next.js (3000)
 ## Урьдчилсан шаардлага
 
 - Сэргээсэн Ubuntu 22.04 эсвэл 24.04 VM (~2GB RAM, ~40GB disk хангалттай эхлэхэд)
-- VM-ийн public IP-руу заагдсан **домэйн** (A record). SSL авахын тулд заавал.
 - SSH access (нэвтэрсэн user)
+- VM-ийн public IP-руу заагдсан **домэйн** (A record) — SSL авахад заавал. **Домэйн хараахан байхгүй бол доорх "Домэйнгүй эхлэх" хэсгийг үз.**
 
 ## 1. Серверийг бэлдэх
 
@@ -58,25 +58,57 @@ nano .env
 - `NEXT_PUBLIC_APP_URL` — https://your-domain.com
 - `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` — Object Storage credentials
 
-## 3. Nginx-д домэйн оноох
+## 3 & 4. Nginx + SSL
+
+Хоёр хувилбарын аль нэгийг сонго:
+
+### Вариант A — Домэйнтэй (production, HTTPS)
 
 ```bash
+# 3. Nginx-д домэйн оноох
 sed -i 's/__DOMAIN__/your-domain.com/g' deploy/nginx/conf.d/app.conf
-```
 
-## 4. SSL (Let's Encrypt)
-
-```bash
+# 4. SSL (Let's Encrypt)
 bash deploy/init-ssl.sh your-domain.com you@email.com
 ```
 
-Энэ нь:
+`init-ssl.sh` нь:
 - Түр self-signed cert үүсгэх
 - Nginx-ийг асаах
 - Certbot-аар жинхэнэ SSL cert авах
 - Nginx-ийг reload
 
 DNS A record нь VM-ийн IP-руу зөв заагдсан байх ёстой.
+
+### Вариант B — Домэйнгүй (эхний ээлж, зөвхөн IP + HTTP)
+
+Домэйн хараахан тодорхой болоогүй бол SSL-гүй, зөвхөн IP-ээр HTTP дээр асаана.
+
+```bash
+# SSL config-ийг HTTP-only config-оор солих
+cp deploy/nginx/app-http.conf deploy/nginx/conf.d/app.conf
+```
+
+`.env` дотор URL-уудыг **http://<server-ip>** болго (https биш):
+
+```bash
+BETTER_AUTH_URL=http://<server-ip>
+NEXT_PUBLIC_APP_URL=http://<server-ip>
+```
+
+> ⚠️ HTTP дээр траффик шифрлэгдэхгүй. Зөвхөн эхний туршилт/staging-д ашигла, бодит хэрэглэгчийн өгөгдөл оруулахаас өмнө домэйн+SSL руу шилж.
+
+Дараа нь шууд **5-р алхам** руу үсэр (`init-ssl.sh` ажиллуулахгүй).
+
+**Домэйн гарсны дараа HTTPS руу шилжих:**
+
+```bash
+git checkout deploy/nginx/conf.d/app.conf
+sed -i 's/__DOMAIN__/your-domain.com/g' deploy/nginx/conf.d/app.conf
+bash deploy/init-ssl.sh your-domain.com you@email.com
+# .env доторх URL-уудыг https://your-domain.com болгож засаад app-ийг restart:
+docker compose -f docker-compose.prod.yml up -d
+```
 
 ## 5. Бүх стек-ийг асаах
 
@@ -101,7 +133,7 @@ docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs -f app
 ```
 
-Browser: `https://your-domain.com` → Sign up → Onboarding → Photo upload.
+Browser: `https://your-domain.com` (домэйнгүй бол `http://<server-ip>`) → Sign up → Onboarding → Photo upload.
 
 ---
 
