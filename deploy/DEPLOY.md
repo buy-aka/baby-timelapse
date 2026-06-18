@@ -96,6 +96,10 @@ BETTER_AUTH_URL=http://<server-ip>
 NEXT_PUBLIC_APP_URL=http://<server-ip>
 ```
 
+> `BETTER_AUTH_URL` нь гол (runtime — cookie security, callback). Auth client нь
+> same-origin ашигладаг тул `NEXT_PUBLIC_APP_URL`-аас хамаардаггүй; гэхдээ
+> тууштай байлгахын тулд хоёуланг нь адил тавь.
+
 > ⚠️ HTTP дээр траффик шифрлэгдэхгүй. Зөвхөн эхний туршилт/staging-д ашигла, бодит хэрэглэгчийн өгөгдөл оруулахаас өмнө домэйн+SSL руу шилж.
 
 Дараа нь шууд **5-р алхам** руу үсэр (`init-ssl.sh` ажиллуулахгүй).
@@ -106,7 +110,8 @@ NEXT_PUBLIC_APP_URL=http://<server-ip>
 git checkout deploy/nginx/conf.d/app.conf
 sed -i 's/__DOMAIN__/your-domain.com/g' deploy/nginx/conf.d/app.conf
 bash deploy/init-ssl.sh your-domain.com you@email.com
-# .env доторх URL-уудыг https://your-domain.com болгож засаад app-ийг restart:
+# .env доторх URL-уудыг https://your-domain.com болго, дараа нь container-ийг
+# дахин үүсгэж шинэ env-ийг авна (URL-ууд runtime тул rebuild шаардахгүй):
 docker compose -f docker-compose.prod.yml up -d
 ```
 
@@ -121,7 +126,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 ## 6. DB migration ажиллуулах
 
 ```bash
-docker compose -f docker-compose.prod.yml exec app sh -c "node node_modules/drizzle-kit/bin.cjs migrate"
+docker compose -f docker-compose.prod.yml exec app node lib/db/migrate.mjs
 ```
 
 Энэ нь `drizzle/` доторхи бүх migration-уудыг application хийнэ.
@@ -143,7 +148,7 @@ Browser: `https://your-domain.com` (домэйнгүй бол `http://<server-ip
 cd /opt/baby-timelapse
 git pull
 docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml exec app sh -c "node node_modules/drizzle-kit/bin.cjs migrate"
+docker compose -f docker-compose.prod.yml exec app node lib/db/migrate.mjs
 ```
 
 ## Backup

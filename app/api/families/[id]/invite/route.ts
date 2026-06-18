@@ -46,7 +46,14 @@ export async function POST(
     })
     .returning()
 
-  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`
+  // Invite URL-ийг runtime-д тодорхойлно: эхлээд BETTER_AUTH_URL (runtime env),
+  // байхгүй бол nginx-ээс ирэх Host/Proto-оос. NEXT_PUBLIC_APP_URL нь build үед
+  // шигддэг тул ашиглахгүй — ингэснээр IP↔domain шилжихэд rebuild шаардахгүй.
+  const reqHeaders = await headers()
+  const origin =
+    process.env.BETTER_AUTH_URL ||
+    `${reqHeaders.get("x-forwarded-proto") ?? "http"}://${reqHeaders.get("host")}`
+  const inviteUrl = `${origin}/invite/${token}`
 
   // TODO: production-д email илгээх. Одоогоор console-д харуулна.
   console.log(`[Invite] To: ${email}, URL: ${inviteUrl}`)

@@ -38,7 +38,14 @@ export function SignUpForm({
       setIsLoading(false)
       return
     }
-    router.push("/chat");
+    // ?redirect= байвал тийш буцаана (жишээ нь /invite/<token>). Зөвхөн
+    // дотоод харьцангуй зам — open-redirect-аас сэргийлж "//"-ийг хорино.
+    const redirect = new URLSearchParams(window.location.search).get("redirect")
+    router.push(
+      redirect && redirect.startsWith("/") && !redirect.startsWith("//")
+        ? redirect
+        : "/chat"
+    );
   };
 
   return (
