@@ -121,7 +121,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 ## 6. DB migration ажиллуулах
 
 ```bash
-docker compose -f docker-compose.prod.yml exec app sh -c "npx drizzle-kit migrate"
+docker compose -f docker-compose.prod.yml exec app sh -c "node node_modules/drizzle-kit/bin.cjs migrate"
 ```
 
 Энэ нь `drizzle/` доторхи бүх migration-уудыг application хийнэ.
@@ -143,7 +143,7 @@ Browser: `https://your-domain.com` (домэйнгүй бол `http://<server-ip
 cd /opt/baby-timelapse
 git pull
 docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml exec app sh -c "npx drizzle-kit migrate"
+docker compose -f docker-compose.prod.yml exec app sh -c "node node_modules/drizzle-kit/bin.cjs migrate"
 ```
 
 ## Backup
