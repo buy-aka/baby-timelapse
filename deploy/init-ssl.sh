@@ -12,6 +12,12 @@ DOMAIN=$1
 EMAIL=$2
 COMPOSE="docker compose -f docker-compose.prod.yml"
 
+if grep -q "__DOMAIN__" deploy/nginx/conf.d/app.conf; then
+  echo "ERROR: deploy/nginx/conf.d/app.conf still contains __DOMAIN__."
+  echo "Replace __DOMAIN__ with $DOMAIN before running this script."
+  exit 1
+fi
+
 echo "=== 1. ACME challenge folder ==="
 mkdir -p deploy/certbot/conf deploy/certbot/www
 
@@ -29,7 +35,7 @@ $COMPOSE up -d nginx
 echo "=== 4. Self-signed-ийг устгаж жинхэнэ certificate-ыг авах ==="
 rm -rf deploy/certbot/conf/live/"$DOMAIN"
 
-$COMPOSE run --rm --entrypoint "" certbot certonly --webroot -w /var/www/certbot \
+$COMPOSE run --rm --entrypoint "certbot" certbot certonly --webroot -w /var/www/certbot \
   --email "$EMAIL" --agree-tos --no-eff-email \
   -d "$DOMAIN"
 

@@ -47,53 +47,124 @@ export function LoginForm({
     );
   };
 
-  return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+return (
+  <div
+    className={cn(
+      "min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-blue-50 p-6",
+      className
+    )}
+    {...props}
+  >
+    <div className="w-full max-w-md">
+
+      <div className="text-center mb-8">
+        <div className="text-5xl mb-4">
+          🌱
+        </div>
+
+        <h1 className="text-3xl font-bold tracking-tight">
+          Horom
+        </h1>
+
+        <p className="mt-3 text-muted-foreground">
+          Хүүхдийнхээ өсөлтийн мөч бүрийг
+          <br />
+          дурсамж болгон хадгалаарай
+        </p>
+      </div>
+
+
+      <Card className="shadow-lg border-0">
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
+          <CardTitle className="text-xl text-center">
+            Нэвтрэх
+          </CardTitle>
+
+          <CardDescription className="text-center">
+            Бүртгэлээрээ нэвтэрнэ үү
           </CardDescription>
         </CardHeader>
+
+
         <CardContent>
+
           <form onSubmit={handleLogin}>
-            <div className="flex flex-col gap-6">
+
+            <div className="flex flex-col gap-5">
+
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">
+                  Имэйл
+                </Label>
+
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="name@example.com"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e)=>setEmail(e.target.value)}
                 />
               </div>
+
+
               <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+
+                <Label htmlFor="password">
+                  Нууц үг
+                </Label>
+
                 <Input
                   id="password"
                   type="password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e)=>setPassword(e.target.value)}
                 />
+
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Нэвтэрч байна..." : "Login"}
+
+
+              {error && (
+                <p className="text-sm text-red-500">
+                  {error}
+                </p>
+              )}
+
+
+              <Button
+                type="submit"
+                className="w-full rounded-full"
+                disabled={isLoading}
+              >
+                {isLoading
+                  ? "Нэвтэрч байна..."
+                  : "Нэвтрэх"}
               </Button>
+
+
             </div>
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
-              <Link href="/auth/sign-up" className="underline underline-offset-4">
-                Sign up
+
+
+            <div className="mt-6 text-center text-sm">
+
+              Бүртгэлгүй юу?{" "}
+
+              <Link
+                href="/auth/sign-up"
+                className="font-medium underline"
+              >
+                Бүртгэл үүсгэх
               </Link>
+
             </div>
+
           </form>
+
         </CardContent>
       </Card>
+
     </div>
-  );
+  </div>
+)
 }

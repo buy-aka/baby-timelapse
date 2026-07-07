@@ -6,6 +6,7 @@ export async function proxy(request: NextRequest) {
 
   // auth болон public route-уудыг алгасна
   if (
+    pathname === "/" ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/uploads") ||
