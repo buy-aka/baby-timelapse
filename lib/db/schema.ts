@@ -9,6 +9,11 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  // verify.mn-ээр баталгаажсан утасны дугаар (бүртгэлд заавал).
+  // NULL зөвшөөрнө — хуучин хэрэглэгчид утасгүй байж болно. Postgres-д
+  // unique index нь олон NULL-ыг зөвшөөрдөг тул зөрчилдөхгүй.
+  phone: text("phone").unique(),
+  phoneVerified: boolean("phone_verified").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
@@ -48,6 +53,29 @@ export const verification = pgTable("verification", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 })
+
+/* ─── verify.mn — утас баталгаажуулах session ────────── */
+
+// verify.mn (MO SMS) баталгаажуулалтын session. Бүртгэлийн үед
+// хэрэглэгч 144773 руу код илгээж утсаа баталгаажуулна.
+// status зөвхөн сервер тал (GET /api/verify/status) verify.mn-ээс
+// баталгаажуулж VERIFIED болгоно — client шууд өөрчилж чадахгүй.
+export const verifySession = pgTable("verify_session", {
+  // verify.mn-ий буцаадаг sessionId (UUID)
+  sessionId: text("session_id").primaryKey(),
+  phone: text("phone").notNull(),
+  code: text("code").notNull(),
+  status: text("status").notNull().default("PENDING").$type<"PENDING" | "VERIFIED" | "EXPIRED">(),
+  // Нэг баталгаажуулалтыг зөвхөн нэг бүртгэлд ашиглана (replay-с сэргийлэх)
+  consumed: boolean("consumed").notNull().default(false),
+  verifiedAt: timestamp("verified_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("verify_session_phone_idx").on(table.phone),
+])
+
+export type VerifySession = typeof verifySession.$inferSelect
 
 /* ─── Tenant tables (family → babies → photos) ───────── */
 
