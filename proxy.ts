@@ -9,6 +9,7 @@ export async function proxy(request: NextRequest) {
     pathname === "/" ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/verify") ||
     pathname.startsWith("/uploads") ||
     pathname === "/favicon.ico"
   ) {
