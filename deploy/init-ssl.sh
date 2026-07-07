@@ -29,7 +29,7 @@ $COMPOSE up -d nginx
 echo "=== 4. Self-signed-ийг устгаж жинхэнэ certificate-ыг авах ==="
 rm -rf deploy/certbot/conf/live/"$DOMAIN"
 
-$COMPOSE run --rm certbot certonly --webroot -w /var/www/certbot \
+$COMPOSE run --rm --entrypoint "" certbot certonly --webroot -w /var/www/certbot \
   --email "$EMAIL" --agree-tos --no-eff-email \
   -d "$DOMAIN"
 

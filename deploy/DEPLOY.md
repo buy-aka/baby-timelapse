@@ -75,7 +75,7 @@ bash deploy/init-ssl.sh your-domain.com you@email.com
 `init-ssl.sh` нь:
 - Түр self-signed cert үүсгэх
 - Nginx-ийг асаах
-- Certbot-аар жинхэнэ SSL cert авах
+- Certbot-аар жинхэнэ SSL cert авах (docker compose run --rm --entrypoint "" certbot certonly ...)
 - Nginx-ийг reload
 
 DNS A record нь VM-ийн IP-руу зөв заагдсан байх ёстой.
