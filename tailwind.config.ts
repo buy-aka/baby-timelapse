@@ -11,6 +11,14 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Landing page-ийн брэнд өнгө (theme-ээс хамааралгүй, тогтмол).
+        brand: {
+          DEFAULT: "#1b6b53",
+          dark: "#14543f",
+          deep: "#123f31",
+          cream: "#f7f4ec",
+          yellow: "#f5c542",
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
