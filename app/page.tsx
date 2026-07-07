@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 via-white to-white">
+    <main className="min-h-screen bg-gradient-to-b from-orange-50 via-white to-white dark:from-orange-950/20 dark:via-background dark:to-background">
 
       {/* Navbar */}
       <header className="container mx-auto flex items-center justify-between py-6 px-6">
@@ -45,14 +45,14 @@ export default function HomePage() {
 
           <div>
 
-            <Badge className="mb-6 bg-orange-100 text-orange-700 hover:bg-orange-100">
+            <Badge className="mb-6 bg-orange-100 text-orange-700 hover:bg-orange-100 dark:bg-orange-950/40 dark:text-orange-300 dark:hover:bg-orange-950/40">
               👶 Хүүхдийн өсөлтийн дурсамж
             </Badge>
 
 
             <h1 className="text-5xl font-bold leading-tight tracking-tight sm:text-6xl">
               Хүүхдийнхээ өсөлтийг
-              <span className="text-orange-500">
+              <span className="text-orange-500 dark:text-orange-400">
                 {" "}мөнхөл.
               </span>
             </h1>
@@ -109,11 +109,11 @@ export default function HomePage() {
 
               <CardContent className="p-0">
 
-                <div className="aspect-square bg-gradient-to-br from-orange-200 via-pink-100 to-white flex items-center justify-center">
+                <div className="aspect-square bg-gradient-to-br from-orange-200 via-pink-100 to-white dark:from-orange-900/40 dark:via-pink-900/20 dark:to-neutral-900 flex items-center justify-center">
 
                   <div className="text-center">
 
-                    <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-white shadow-lg text-6xl">
+                    <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-white dark:bg-neutral-800 shadow-lg text-6xl">
                       👶
                     </div>
 
@@ -135,7 +135,7 @@ export default function HomePage() {
             </Card>
 
 
-            <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white p-4 shadow-lg">
+            <div className="absolute -bottom-6 -left-6 rounded-2xl bg-white dark:bg-neutral-800 p-4 shadow-lg">
 
               <p className="text-sm text-muted-foreground">
                 Өнөөдрийн зураг
@@ -204,7 +204,7 @@ export default function HomePage() {
 
 
       {/* Privacy */}
-      <section className="bg-orange-50 py-20">
+      <section className="bg-orange-50 py-20 dark:bg-orange-950/20">
 
         <div className="container mx-auto px-6">
 
@@ -291,7 +291,7 @@ function Feature({
 
       <CardContent className="p-8">
 
-        <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
+        <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 dark:bg-orange-950/40 dark:text-orange-300">
           {icon}
         </div>
 
