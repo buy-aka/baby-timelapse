@@ -23,6 +23,7 @@ import {
 
 import { LandingFaq } from "@/components/landing/faq";
 import { ContactForm } from "@/components/landing/contact-form";
+import { PLANS, TRIAL_DAYS, formatMnt } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Horom — Хүүхдийн өсөлтийн дурсамж",
@@ -257,6 +258,124 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ───────── Pricing ───────── */}
+      <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
+        <div className="mx-auto max-w-xl text-center">
+          <Eyebrow>Үнэ</Eyebrow>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-neutral-900">
+            Энгийн, ойлгомжтой үнэ
+          </h2>
+          <p className="mt-4 leading-relaxed text-neutral-600">
+            {TRIAL_DAYS} хоног бүрэн үнэгүй туршаад, таалагдвал багцаа сонгоорой.
+            Карт шаардлагагүй, багц жилээр төлөгдөнө.
+          </p>
+        </div>
+
+        <div className="mx-auto mt-12 grid max-w-3xl gap-6 md:grid-cols-2">
+          {PLANS.map((plan) => (
+            <div
+              key={plan.id}
+              className={
+                plan.highlighted
+                  ? "relative flex flex-col gap-6 rounded-[2rem] bg-brand p-8 text-white shadow-xl"
+                  : "relative flex flex-col gap-6 rounded-[2rem] border border-neutral-200 bg-white p-8 shadow-lg"
+              }
+            >
+              {plan.highlighted && (
+                <span className="absolute -top-3 right-8 rounded-full bg-brand-yellow px-3 py-1 text-xs font-semibold text-neutral-900">
+                  Санал болгож буй
+                </span>
+              )}
+              <div>
+                <h3
+                  className={
+                    plan.highlighted
+                      ? "text-lg font-semibold text-white"
+                      : "text-lg font-semibold text-neutral-900"
+                  }
+                >
+                  {plan.name}
+                </h3>
+                <p
+                  className={
+                    plan.highlighted
+                      ? "mt-1 text-sm text-white/80"
+                      : "mt-1 text-sm text-neutral-600"
+                  }
+                >
+                  {plan.tagline}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-4xl font-bold tracking-tight">
+                  {formatMnt(plan.introPriceMnt)}
+                </span>
+                <span
+                  className={
+                    plan.highlighted ? "text-sm text-white/80" : "text-sm text-neutral-500"
+                  }
+                >
+                  {" "}
+                  /жил
+                </span>
+                <p
+                  className={
+                    plan.highlighted
+                      ? "mt-1 text-xs text-white/85"
+                      : "mt-1 text-xs text-neutral-500"
+                  }
+                >
+                  2026 оны эрт дэмжигчийн үнэ · энгийн үнэ{" "}
+                  {formatMnt(plan.standardPriceMnt)}
+                </p>
+              </div>
+
+              <ul className="flex flex-col gap-3 text-sm">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <span
+                      className={
+                        plan.highlighted
+                          ? "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/20"
+                          : "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand/10"
+                      }
+                    >
+                      <Check
+                        size={12}
+                        className={plan.highlighted ? "text-white" : "text-brand"}
+                      />
+                    </span>
+                    <span
+                      className={plan.highlighted ? "text-white/90" : "text-neutral-700"}
+                    >
+                      {f}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-auto">
+                <Link
+                  href="/auth/sign-up"
+                  className={
+                    plan.highlighted
+                      ? "inline-flex w-full items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand transition-colors hover:bg-brand-cream"
+                      : "inline-flex w-full items-center justify-center rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-dark"
+                  }
+                >
+                  Үнэгүй туршиж эхлэх
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-8 text-center text-sm text-neutral-500">
+          Багцаа Тохиргоо → Багц хэсгээс хүссэн үедээ идэвхжүүлж, ахиулж болно.
+        </p>
+      </section>
+
       {/* ───────── FAQ ───────── */}
       <section id="faq" className="mx-auto max-w-6xl px-6 py-20">
         <div className="grid items-start gap-12 lg:grid-cols-2">
@@ -408,6 +527,7 @@ function Nav() {
     { href: "#home", label: "Нүүр" },
     { href: "#about", label: "Танилцуулга" },
     { href: "#features", label: "Онцлог" },
+    { href: "#pricing", label: "Үнэ" },
     { href: "#faq", label: "Асуулт" },
     { href: "#contact", label: "Холбоо барих" },
   ];

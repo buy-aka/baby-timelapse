@@ -1,0 +1,56 @@
+// Багцын нэгдсэн тодорхойлолт — landing үнийн хэсэг болон settings-ийн
+// багц идэвхжүүлэлт хоёулаа эндээс уншина. Үнэ өөрчлөгдвөл зөвхөн энд засна.
+
+export const TRIAL_DAYS = 7
+
+export type PlanId = "basic" | "plus"
+
+export type Plan = {
+  id: PlanId
+  name: string
+  tagline: string
+  /** 2026 оны эрт дэмжигчийн үнэ (₮/жил) */
+  introPriceMnt: number
+  /** Хожмын энгийн үнэ (₮/жил) — танилцуулгад харуулна */
+  standardPriceMnt: number
+  features: string[]
+  highlighted: boolean
+}
+
+export const PLANS: Plan[] = [
+  {
+    id: "basic",
+    name: "Basic",
+    tagline: "Өсөлтийн түүхээ хадгалж эхлэхэд",
+    introPriceMnt: 10000,
+    standardPriceMnt: 50000,
+    features: [
+      "Нэг хүүхдийн timelapse — өдөрт 1 зураг",
+      "6 хүртэл гэр бүлийн гишүүн урих",
+      "7 хоногт 1 удаа бичлэг татах",
+      "Зураг найдвартай хадгалалт",
+    ],
+    highlighted: false,
+  },
+  {
+    id: "plus",
+    name: "Plus",
+    tagline: "Бүх дурсамжаа нэг дор цуглуулахад",
+    introPriceMnt: 20000,
+    standardPriceMnt: 100000,
+    features: [
+      "Basic багцын бүх боломж",
+      "Тусдаа цомог — 20GB хүртэл зураг",
+      "Өдөрт 1 удаа бичлэг татах",
+    ],
+    highlighted: true,
+  },
+]
+
+export function getPlan(id: string): Plan | undefined {
+  return PLANS.find((p) => p.id === id)
+}
+
+export function formatMnt(n: number): string {
+  return n.toLocaleString("mn-MN").replace(/,/g, " ") + "₮"
+}

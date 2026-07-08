@@ -43,6 +43,13 @@
       "when": 1783480363305,
       "tag": "0005_lethal_kree",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783503254804,
+      "tag": "0006_wakeful_wong",
+      "breakpoints": true
     }
   ]
 }

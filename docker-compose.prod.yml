@@ -70,6 +70,10 @@ services:
       VERIFY_MN_API_KEY: ${VERIFY_MN_API_KEY}
       # verify.mn "login" RULE-ийн prefix (Developer Console → RULE → Prefix)
       VERIFY_MN_LOGIN_PREFIX: ${VERIFY_MN_LOGIN_PREFIX}
+      # Багцын төлбөрийн шилжүүлгийн данс (settings → Багц хуудсанд харагдана)
+      BILLING_BANK_NAME: ${BILLING_BANK_NAME:-}
+      BILLING_BANK_ACCOUNT: ${BILLING_BANK_ACCOUNT:-}
+      BILLING_BANK_HOLDER: ${BILLING_BANK_HOLDER:-}
 
   nginx:
     image: nginx:1.27-alpine

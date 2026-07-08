@@ -1,4 +1,4 @@
-import { pgTable, uuid, date, text, timestamp, boolean, uniqueIndex, index } from "drizzle-orm/pg-core"
+import { pgTable, uuid, date, text, timestamp, boolean, integer, uniqueIndex, index } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 /* ─── better-auth tables ─────────────────────────────── */
@@ -108,6 +108,32 @@ export const family = pgTable("family", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
+
+/* ─── Багцын захиалга (subscription, family тутамд нэг) ─── */
+
+// Гэр бүл бүрт нэг захиалга. Төлөв нь хадгалагдахгүй — огноонуудаас гарна:
+//   plan тавигдсан && periodEndsAt > now  → идэвхтэй (төлбөртэй)
+//   үгүй бол trialEndsAt > now            → туршилтын хугацаа
+//   аль нь ч биш                           → дууссан
+// requestedPlan/requestedAmountMnt/paymentReference — хэрэглэгч багц сонгож
+// шилжүүлэг хийхийг хүлээж буй үед бөглөгдөнө. Дүнг хүсэлтийн агшинд
+// баазад тогтоож, reference-ийг багц солигдох бүрт шинэчилдэг тул
+// "бага дүн төлөөд өндөр багц авах" боломжгүй. Баталгаажуулмагц гурвууланг
+// нь цэвэрлэж plan/periodEndsAt-ыг тавина (deploy/DEPLOY.md-ийн SQL-ийг үз).
+export const subscription = pgTable("subscription", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: uuid("family_id").notNull().references(() => family.id, { onDelete: "cascade" }).unique(),
+  plan: text("plan").$type<"basic" | "plus">(),
+  requestedPlan: text("requested_plan").$type<"basic" | "plus">(),
+  requestedAmountMnt: integer("requested_amount_mnt"),
+  paymentReference: text("payment_reference").unique(),
+  trialEndsAt: timestamp("trial_ends_at").notNull(),
+  periodEndsAt: timestamp("period_ends_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export type Subscription = typeof subscription.$inferSelect
 
 export const FAMILY_ROLES = ["owner", "parent", "member", "viewer"] as const
 export type FamilyRole = (typeof FAMILY_ROLES)[number]

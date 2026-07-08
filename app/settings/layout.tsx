@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Baby, Users, ArrowLeft } from "lucide-react"
+import { Baby, Users, ArrowLeft, CreditCard } from "lucide-react"
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -29,6 +29,13 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           >
             <Users size={15} />
             Гэр бүл
+          </Link>
+          <Link
+            href="/settings/billing"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <CreditCard size={15} />
+            Багц
           </Link>
         </nav>
 

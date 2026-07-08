@@ -151,6 +151,44 @@ docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml exec app node lib/db/migrate.mjs
 ```
 
+## Багцын төлбөр баталгаажуулах
+
+Хэрэглэгч Тохиргоо → Багц хэсгээс багц сонгоход `HRM-XXXXXX` гүйлгээний утга
+үүсч, шилжүүлгийн заавар харагдана. Банкны хуулгад тухайн код бүхий орлого
+ирмэгц:
+
+1. **Дүнг заавал шалга** — хуулгын дүн `requested_amount_mnt`-тэй тэнцүү байх
+   ёстой (багц бүрийн үнэ хүсэлтийн агшинд баазад тогтоогдсон байдаг):
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T postgres \
+  psql -U app -d baby_timelapse -c \
+  "SELECT family_id, requested_plan, requested_amount_mnt, payment_reference
+   FROM subscription WHERE payment_reference = 'HRM-XXXXXX';"
+```
+
+2. Дүн таарч байвал идэвхжүүлнэ (сунгалт бол одоогийн хугацаан дээр нэмэгдэнэ):
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T postgres \
+  psql -U app -d baby_timelapse -c \
+  "UPDATE subscription
+   SET plan = requested_plan,
+       period_ends_at = GREATEST(COALESCE(period_ends_at, now()), now()) + interval '1 year',
+       requested_plan = NULL,
+       requested_amount_mnt = NULL,
+       payment_reference = NULL,
+       updated_at = now()
+   WHERE payment_reference = 'HRM-XXXXXX'
+     AND requested_plan IS NOT NULL;"
+```
+
+> ⚠️ `payment_reference`-ийг заавал цэвэрлэдэг — нэг кодыг хоёр төлбөрт
+> ашиглахаас сэргийлнэ. Дүн таарахгүй бол идэвхжүүлэхгүй, хэрэглэгчтэй холбогдоно.
+
+Дансны мэдээллийг `.env`-д тохируулна: `BILLING_BANK_NAME`,
+`BILLING_BANK_ACCOUNT`, `BILLING_BANK_HOLDER` (дараа нь `up -d app`).
+
 ## Backup
 
 ### Postgres
