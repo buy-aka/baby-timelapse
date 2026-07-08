@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -9,8 +10,20 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Baby Timelapse",
+  title: "Horom",
   description: "Хүүхдийн өсөлтийн зургийн өдөр тутмын тэмдэглэл",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Horom",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1b6b53",
 };
 
 const geistSans = Geist({
@@ -34,6 +47,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <PwaRegister />
         </ThemeProvider>
       </body>
     </html>

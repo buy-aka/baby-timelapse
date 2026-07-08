@@ -6,6 +6,16 @@ const nextConfig: NextConfig = {
   // Landing page-ийн зургууд public/-д. standalone build-д sharp
   // шаардахгүйн тулд optimization-г унтраана (зургууд шууд served).
   images: { unoptimized: true },
+  async headers() {
+    return [
+      {
+        // Service worker-ийг browser HTTP кэшэд гацаахгүй — шинэ хувилбар
+        // гарангуут дараагийн load дээр шууд шинэчлэгдэнэ.
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "no-cache" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
