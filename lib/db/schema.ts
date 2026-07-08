@@ -77,6 +77,28 @@ export const verifySession = pgTable("verify_session", {
 
 export type VerifySession = typeof verifySession.$inferSelect
 
+/* ─── verify.mn — RULE-ээр нэвтрэх (утасны дугаараар, парольгүй) ─── */
+
+// "login" RULE-ээр ирэх SMS-г хүлээх challenge. Хэрэглэгч аль хэдийн
+// баталгаажсан утастай бол энэ кодыг 144773 руу илгээж парольгүй нэвтэрнэ.
+// status-ыг зөвхөн app/api/sms/check (verify.mn callback) VERIFIED болгодог,
+// app/api/auth/phone-login/status нь VERIFIED→CONSUMED болгож session үүсгэнэ.
+export const phoneLoginChallenge = pgTable("phone_login_challenge", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  phone: text("phone").notNull(),
+  code: text("code").notNull(),
+  status: text("status").notNull().default("PENDING").$type<"PENDING" | "VERIFIED" | "CONSUMED" | "EXPIRED">(),
+  // verify.mn callback-аас ирэх requestId — debug/audit-д зориулав.
+  requestId: text("request_id"),
+  verifiedAt: timestamp("verified_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("phone_login_challenge_phone_idx").on(table.phone),
+])
+
+export type PhoneLoginChallenge = typeof phoneLoginChallenge.$inferSelect
+
 /* ─── Tenant tables (family → babies → photos) ───────── */
 
 export const family = pgTable("family", {

@@ -10,8 +10,14 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/verify") ||
+    pathname.startsWith("/api/sms") ||
     pathname.startsWith("/uploads") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    // PWA assets — cookie-гүй татагддаг тул auth шалгалтаас чөлөөлнө.
+    // (sw.js-ийн хувьд redirect нь бүртгэлийг шууд унагадаг тул заавал.)
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/sw.js" ||
+    pathname === "/offline.html"
   ) {
     return NextResponse.next()
   }

@@ -68,6 +68,8 @@ services:
       S3_BUCKET: ${S3_BUCKET}
       # verify.mn утас баталгаажуулах API key (Developer Console-оос)
       VERIFY_MN_API_KEY: ${VERIFY_MN_API_KEY}
+      # verify.mn "login" RULE-ийн prefix (Developer Console → RULE → Prefix)
+      VERIFY_MN_LOGIN_PREFIX: ${VERIFY_MN_LOGIN_PREFIX}
 
   nginx:
     image: nginx:1.27-alpine

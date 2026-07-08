@@ -5,6 +5,7 @@ import { and, desc, eq, gt } from "drizzle-orm"
 import { db } from "@/lib/db"
 import * as schema from "@/lib/db/schema"
 import { isValidMongolianPhone } from "@/lib/verify"
+import { phoneLoginPlugin } from "@/lib/auth-phone-login-plugin"
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -16,6 +17,7 @@ export const auth = betterAuth({
       verification: schema.verification,
     },
   }),
+  plugins: [phoneLoginPlugin()],
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
