@@ -2,18 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { getUserOwnedFamily } from "@/lib/tenant"
-import {
-  cancelPlanRequest,
-  getBankDetails,
-  getBillingStatus,
-  getOrCreateSubscription,
-  requestPlan,
-} from "@/lib/billing"
+import { activatePlan, getBillingStatus, getOrCreateSubscription } from "@/lib/billing"
 import { getPlan } from "@/lib/plans"
 
-// POST /api/billing/activate — { plan } → багц идэвхжүүлэх/ахиулах хүсэлт.
-// Төлбөрийн gateway хараахан холбогдоогүй тул шилжүүлгийн заавар + гүйлгээний
-// утга буцаана; төлбөр баталгаажмагц гараар идэвхжинэ.
+// POST /api/billing/activate — { plan } → багц идэвхжүүлэх/ахиулах/сунгах.
+// Төлбөрийн gateway хараахан холбогдоогүй тул шууд идэвхжинэ (lib/billing.ts).
 export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -41,8 +34,6 @@ export async function POST(req: NextRequest) {
   const current = await getOrCreateSubscription(familyId)
   const status = getBillingStatus(current)
 
-  // Идэвхтэй Plus-тай бол ахиулах юм алга; ижил багц руу "ахиулах" нь сунгалт
-  // тул зөвшөөрнө (дараагийн жилийн төлбөр).
   if (status === "active" && current.plan === "plus" && plan.id === "basic") {
     return NextResponse.json(
       { error: "Plus багцаас Basic руу буулгах бол бидэнтэй холбогдоно уу." },
@@ -50,29 +41,10 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const sub = await requestPlan(familyId, plan)
+  const sub = await activatePlan(familyId, plan)
 
   return NextResponse.json({
-    requestedPlan: sub.requestedPlan,
-    paymentReference: sub.paymentReference,
-    amountMnt: sub.requestedAmountMnt,
-    bank: getBankDetails(),
+    plan: sub.plan,
+    periodEndsAt: sub.periodEndsAt,
   })
-}
-
-// DELETE /api/billing/activate — хүлээгдэж буй хүсэлтийг цуцлана.
-export async function DELETE() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  const familyId = await getUserOwnedFamily(session.user.id)
-  if (!familyId) {
-    return NextResponse.json(
-      { error: "Багцыг зөвхөн гэр бүлийн эзэмшигч удирдана." },
-      { status: 403 },
-    )
-  }
-
-  await cancelPlanRequest(familyId)
-  return NextResponse.json({ ok: true })
 }

@@ -151,43 +151,37 @@ docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml exec app node lib/db/migrate.mjs
 ```
 
-## Багцын төлбөр баталгаажуулах
+## Багцын горим
 
-Хэрэглэгч Тохиргоо → Багц хэсгээс багц сонгоход `HRM-XXXXXX` гүйлгээний утга
-үүсч, шилжүүлгийн заавар харагдана. Банкны хуулгад тухайн код бүхий орлого
-ирмэгц:
+**Одоогоор багц ТӨЛБӨРГҮЙ шууд идэвхжинэ** — төлбөрийн gateway-тэй гэрээ
+хийгдээгүй байгаа тул. Багцын жилийн хугацаа **гэр бүлийн эхний зураг
+оруулсан өдрөөс** тоологдоно (жишээ: 3 сарын 3-нд эхний зураг орсон бол багц
+дараа жилийн 3 сарын 3-нд дуусна). Идэвхжүүлэх үед зураг байхгүй бол
+`period_ends_at = NULL` буюу цаг эхлээгүй — эхний зураг ормогц автоматаар
+бөглөгдөнө.
 
-1. **Дүнг заавал шалга** — хуулгын дүн `requested_amount_mnt`-тэй тэнцүү байх
-   ёстой (багц бүрийн үнэ хүсэлтийн агшинд баазад тогтоогдсон байдаг):
-
-```bash
-docker compose -f docker-compose.prod.yml exec -T postgres \
-  psql -U app -d baby_timelapse -c \
-  "SELECT family_id, requested_plan, requested_amount_mnt, payment_reference
-   FROM subscription WHERE payment_reference = 'HRM-XXXXXX';"
-```
-
-2. Дүн таарч байвал идэвхжүүлнэ (сунгалт бол одоогийн хугацаан дээр нэмэгдэнэ):
+Захиалгын төлөв харах:
 
 ```bash
 docker compose -f docker-compose.prod.yml exec -T postgres \
   psql -U app -d baby_timelapse -c \
-  "UPDATE subscription
-   SET plan = requested_plan,
-       period_ends_at = GREATEST(COALESCE(period_ends_at, now()), now()) + interval '1 year',
-       requested_plan = NULL,
-       requested_amount_mnt = NULL,
-       payment_reference = NULL,
-       updated_at = now()
-   WHERE payment_reference = 'HRM-XXXXXX'
-     AND requested_plan IS NOT NULL;"
+  "SELECT f.name, s.plan, s.trial_ends_at, s.period_ends_at
+   FROM subscription s JOIN family f ON f.id = s.family_id;"
 ```
 
-> ⚠️ `payment_reference`-ийг заавал цэвэрлэдэг — нэг кодыг хоёр төлбөрт
-> ашиглахаас сэргийлнэ. Дүн таарахгүй бол идэвхжүүлэхгүй, хэрэглэгчтэй холбогдоно.
+Гараар засах шаардлага гарвал (жишээ нь хугацаа өөрчлөх):
 
-Дансны мэдээллийг `.env`-д тохируулна: `BILLING_BANK_NAME`,
-`BILLING_BANK_ACCOUNT`, `BILLING_BANK_HOLDER` (дараа нь `up -d app`).
+```bash
+docker compose -f docker-compose.prod.yml exec -T postgres \
+  psql -U app -d baby_timelapse -c \
+  "UPDATE subscription SET plan = 'plus', period_ends_at = '2027-03-03', updated_at = now()
+   WHERE family_id = '<FAMILY_ID>';"
+```
+
+Төлбөрийн gateway холбогдмогц энэ хэсэгт баталгаажуулах урсгал буцаж нэмэгдэнэ
+(schema-ийн `requested_plan`/`requested_amount_mnt`/`payment_reference`
+баганууд түүнд зориулагдан үлдсэн). Дансны мэдээллийн `BILLING_BANK_*`
+env-үүд мөн түүнд зориулагдсан, одоогоор ашиглагдахгүй.
 
 ## Backup
 

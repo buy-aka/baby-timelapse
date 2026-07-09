@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { getUserOwnedFamily } from "@/lib/tenant"
-import { getBankDetails, getBillingStatus, getOrCreateSubscription } from "@/lib/billing"
+import { getBillingStatus, resolveSubscription } from "@/lib/billing"
 
 // GET /api/billing — нэвтэрсэн хэрэглэгчийн өөрийн гэр бүлийн захиалгын төлөв.
 export async function GET() {
@@ -15,7 +15,9 @@ export async function GET() {
     return NextResponse.json({ isOwner: false })
   }
 
-  const sub = await getOrCreateSubscription(familyId)
+  // resolveSubscription: идэвхжүүлснээс хойш эхний зураг орсон бол
+  // periodEndsAt-г эхний зурагны ойгоор автоматаар бөглөнө.
+  const sub = await resolveSubscription(familyId)
   const status = getBillingStatus(sub)
   const now = Date.now()
   const trialDaysLeft =
@@ -27,12 +29,8 @@ export async function GET() {
     isOwner: true,
     status,
     plan: sub.plan,
-    requestedPlan: sub.requestedPlan,
-    requestedAmountMnt: sub.requestedPlan ? sub.requestedAmountMnt : null,
-    paymentReference: sub.requestedPlan ? sub.paymentReference : null,
     trialEndsAt: sub.trialEndsAt,
     trialDaysLeft,
     periodEndsAt: sub.periodEndsAt,
-    bank: sub.requestedPlan ? getBankDetails() : null,
   })
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Check, Copy, CreditCard, Sparkles } from "lucide-react"
+import { Check, CreditCard, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PLANS, formatMnt, type PlanId } from "@/lib/plans"
 import { cn } from "@/lib/utils"
@@ -10,12 +10,8 @@ interface BillingState {
   isOwner: boolean
   status?: "trial" | "active" | "expired"
   plan?: PlanId | null
-  requestedPlan?: PlanId | null
-  requestedAmountMnt?: number | null
-  paymentReference?: string | null
   trialDaysLeft?: number
   periodEndsAt?: string | null
-  bank?: { bank: string; account: string; holder: string } | null
 }
 
 // Дуусахаас өмнө хэдэн хоногт "Сунгах" товч идэвхжихийг заана.
@@ -25,8 +21,8 @@ export default function BillingPage() {
   const [billing, setBilling] = useState<BillingState | null>(null)
   const [loading, setLoading] = useState(true)
   const [activating, setActivating] = useState<PlanId | null>(null)
+  const [justActivated, setJustActivated] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -47,6 +43,7 @@ export default function BillingPage() {
   const activate = async (plan: PlanId) => {
     setActivating(plan)
     setError(null)
+    setJustActivated(false)
     try {
       const res = await fetch("/api/billing/activate", {
         method: "POST",
@@ -58,35 +55,12 @@ export default function BillingPage() {
         setError(data.error ?? "Алдаа гарлаа")
         return
       }
+      setJustActivated(true)
       await load()
     } catch {
       setError("Сүлжээний алдаа")
     } finally {
       setActivating(null)
-    }
-  }
-
-  const cancelRequest = async () => {
-    setError(null)
-    try {
-      const res = await fetch("/api/billing/activate", { method: "DELETE" })
-      if (!res.ok) {
-        setError("Цуцлахад алдаа гарлаа")
-        return
-      }
-      await load()
-    } catch {
-      setError("Сүлжээний алдаа")
-    }
-  }
-
-  const copyReference = async (ref: string) => {
-    try {
-      await navigator.clipboard.writeText(ref)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // clipboard байхгүй орчин — код харагдаж байгаа тул гараар хуулж болно
     }
   }
 
@@ -119,7 +93,6 @@ export default function BillingPage() {
           ? "Багцын хугацаа дууссан — сунгаарай"
           : "Туршилтын хугацаа дууссан"
 
-  const requestedPlanDef = PLANS.find((p) => p.id === billing.requestedPlan)
   const daysToExpiry = billing.periodEndsAt
     ? Math.ceil((new Date(billing.periodEndsAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
     : null
@@ -130,6 +103,8 @@ export default function BillingPage() {
         <h2 className="text-lg font-semibold mb-1">Багц</h2>
         <p className="text-sm text-zinc-500">
           Багцаа идэвхжүүлж хүүхдийнхээ дурсамжийг тасралтгүй хадгалаарай.
+          Багцын хугацаа хүүхдийн эхний зураг оруулсан өдрөөс эхлэн жилээр
+          тоологдоно.
         </p>
       </div>
 
@@ -145,76 +120,30 @@ export default function BillingPage() {
         <CreditCard size={18} className="shrink-0" />
         <div className="text-sm">
           <p className="font-medium">{statusLabel}</p>
-          {billing.status === "active" && billing.periodEndsAt && (
-            <p className="text-zinc-500">
-              Дуусах: {new Date(billing.periodEndsAt).toLocaleDateString("mn-MN")}
-            </p>
-          )}
+          {billing.status === "active" &&
+            (billing.periodEndsAt ? (
+              <p className="text-zinc-500">
+                Дуусах: {new Date(billing.periodEndsAt).toLocaleDateString("mn-MN")}
+              </p>
+            ) : (
+              <p className="text-zinc-500">
+                Хугацаа эхний зураг оруулсан өдрөөс эхэлж 1 жил үргэлжилнэ.
+              </p>
+            ))}
         </div>
       </div>
 
-      {/* Төлбөр хүлээгдэж буй хүсэлт */}
-      {billing.requestedPlan && billing.paymentReference && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-4 text-sm flex flex-col gap-3">
-          <p className="font-medium">
-            {requestedPlanDef?.name} багцын төлбөр хүлээгдэж байна
-          </p>
-          {billing.bank ? (
-            <div className="grid gap-1.5">
-              <Row label="Банк" value={billing.bank.bank} />
-              <Row label="Данс" value={billing.bank.account} />
-              <Row label="Хүлээн авагч" value={billing.bank.holder} />
-              <Row
-                label="Дүн"
-                value={
-                  billing.requestedAmountMnt
-                    ? formatMnt(billing.requestedAmountMnt)
-                    : requestedPlanDef
-                      ? formatMnt(requestedPlanDef.introPriceMnt)
-                      : "—"
-                }
-              />
-            </div>
-          ) : (
-            <p className="text-zinc-600 dark:text-zinc-400">
-              Дансны мэдээлэл тун удахгүй байршина — түр хүлээнэ үү.
-            </p>
-          )}
-          <div className="flex items-center gap-2">
-            <span className="text-zinc-600 dark:text-zinc-400">Гүйлгээний утга:</span>
-            <code className="font-mono font-semibold">{billing.paymentReference}</code>
-            <button
-              type="button"
-              onClick={() => copyReference(billing.paymentReference!)}
-              className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-              aria-label="Гүйлгээний утгыг хуулах"
-            >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-            </button>
-          </div>
-          <p className="text-xs text-zinc-500">
-            Шилжүүлгийн гүйлгээний утгад дээрх кодыг заавал бичээрэй — төлбөрийг
-            ажлын 1 өдөрт багтаан баталгаажуулж, багцыг идэвхжүүлнэ. Өөр багц
-            сонговол шинэ код үүсэх тул өмнө нь шилжүүлэг хийсэн бол багцаа бүү
-            солиорой.
-          </p>
-          <button
-            type="button"
-            onClick={cancelRequest}
-            className="self-start text-xs text-zinc-500 underline hover:text-zinc-700 dark:hover:text-zinc-300"
-          >
-            Хүсэлт цуцлах
-          </button>
-        </div>
+      {justActivated && (
+        <p role="status" className="text-sm text-emerald-600 dark:text-emerald-400">
+          Багц амжилттай идэвхжлээ ✓
+        </p>
       )}
-
       {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
 
       {/* Багцууд */}
       <div className="grid gap-4 sm:grid-cols-2">
         {PLANS.map((plan) => {
           const isCurrent = billing.status === "active" && billing.plan === plan.id
-          const isRequested = billing.requestedPlan === plan.id
           const isUpgrade =
             billing.status === "active" && billing.plan === "basic" && plan.id === "plus"
           // Plus идэвхтэй үед Basic руу буулгахыг UI-аас хориглоно (API ч хориглодог).
@@ -267,24 +196,20 @@ export default function BillingPage() {
               <Button
                 className="w-full mt-auto"
                 variant={plan.highlighted ? "default" : "outline"}
-                disabled={
-                  (isCurrent && !canRenew) || isDowngrade || isRequested || activating !== null
-                }
+                disabled={(isCurrent && !canRenew) || isDowngrade || activating !== null}
                 onClick={() => activate(plan.id)}
               >
-                {isRequested
-                  ? "Төлбөр хүлээгдэж байна"
-                  : activating === plan.id
-                    ? "Түр хүлээнэ үү..."
-                    : canRenew
-                      ? "Сунгах"
-                      : isCurrent
-                        ? "Одоогийн багц"
-                        : isDowngrade
-                          ? "Plus идэвхтэй"
-                          : isUpgrade
-                            ? "Plus руу ахиулах"
-                            : "Идэвхжүүлэх"}
+                {activating === plan.id
+                  ? "Түр хүлээнэ үү..."
+                  : canRenew
+                    ? "Сунгах"
+                    : isCurrent
+                      ? "Одоогийн багц"
+                      : isDowngrade
+                        ? "Plus идэвхтэй"
+                        : isUpgrade
+                          ? "Plus руу ахиулах"
+                          : "Идэвхжүүлэх"}
               </Button>
             </div>
           )
@@ -292,21 +217,12 @@ export default function BillingPage() {
       </div>
 
       <p className="text-xs text-zinc-500">
-        Бүх багц жилээр төлөгдөнө. Асуулт байвал{" "}
+        Төлбөрийн систем тун удахгүй нэвтэрнэ. Асуулт байвал{" "}
         <a href="mailto:info@horom.mn" className="underline">
           info@horom.mn
         </a>{" "}
         хаягаар холбогдоорой.
       </p>
-    </div>
-  )
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <span className="text-zinc-600 dark:text-zinc-400">{label}</span>
-      <span className="font-medium">{value}</span>
     </div>
   )
 }
