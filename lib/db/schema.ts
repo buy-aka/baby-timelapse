@@ -14,6 +14,9 @@ export const user = pgTable("user", {
   // unique index нь олон NULL-ыг зөвшөөрдөг тул зөрчилдөхгүй.
   phone: text("phone").unique(),
   phoneVerified: boolean("phone_verified").notNull().default(false),
+  // Бүртгэлийн үед үйлчилгээний нөхцөл (/terms) зөвшөөрсөн эсэх.
+  // Зөвшөөрсөн хугацаа нь createdAt (бүртгэлийн агшин) болно.
+  termsAccepted: boolean("terms_accepted").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })

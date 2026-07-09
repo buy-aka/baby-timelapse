@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -44,6 +45,7 @@ export function SignUpForm({
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -85,6 +87,7 @@ export function SignUpForm({
       password,
       name,
       phone,
+      termsAccepted,
     });
     if (error) {
       completingRef.current = false;
@@ -93,7 +96,7 @@ export function SignUpForm({
       return;
     }
     redirectAfterAuth();
-  }, [email, password, name, phone, redirectAfterAuth]);
+  }, [email, password, name, phone, termsAccepted, redirectAfterAuth]);
 
   // verify.mn статус шалгах (poll бүрт болон "Мессеж шалгах" товчинд).
   const checkStatus = useCallback(
@@ -156,6 +159,11 @@ export function SignUpForm({
     }
     if (password.length < 8) {
       setError("Нууц үг доод тал нь 8 тэмдэгт байх ёстой.");
+      return;
+    }
+    // SMS (хэрэглэгчид 150₮-ийн зардал) илгээхээс ӨМНӨ нөхцөлөө шаардана.
+    if (!termsAccepted) {
+      setError("Үргэлжлүүлэхийн тулд үйлчилгээний нөхцөлийг зөвшөөрнө үү.");
       return;
     }
     setPhone(normalized);
@@ -279,7 +287,30 @@ export function SignUpForm({
                       />
                     </div>
 
-                    {error && <p className="text-sm text-red-500">{error}</p>}
+                    <div className="flex items-start gap-2.5">
+                      <Checkbox
+                        id="terms"
+                        checked={termsAccepted}
+                        onCheckedChange={(v) => setTermsAccepted(v === true)}
+                        className="mt-0.5"
+                      />
+                      <Label
+                        htmlFor="terms"
+                        className="text-sm font-normal leading-snug text-muted-foreground"
+                      >
+                        <Link
+                          href="/terms"
+                          target="_blank"
+                          rel="noopener"
+                          className="font-medium text-foreground underline underline-offset-2"
+                        >
+                          Үйлчилгээний нөхцөл
+                        </Link>
+                        ийг уншиж танилцан, зөвшөөрч байна.
+                      </Label>
+                    </div>
+
+                    {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
 
                     <Button
                       type="submit"

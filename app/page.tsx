@@ -498,8 +498,8 @@ export default function HomePage() {
               </p>
 
               <div className="mt-8 flex flex-col gap-5">
-                <ContactItem icon={<Phone size={18} />} label="Утас" value="+976 7000 0000" />
-                <ContactItem icon={<Mail size={18} />} label="Имэйл" value="info@horom.mn" />
+                <ContactItem icon={<Phone size={18} />} label="Утас" value="+976 90442255" />
+                <ContactItem icon={<Mail size={18} />} label="Имэйл" value="buyka.1776@gmail.com" />
                 <ContactItem
                   icon={<MapPin size={18} />}
                   label="Хаяг"
@@ -615,6 +615,7 @@ function Footer() {
             links={[
               { label: "Танилцуулга", href: "#about" },
               { label: "Холбоо барих", href: "#contact" },
+              { label: "Үйлчилгээний нөхцөл", href: "/terms" },
               { label: "Нэвтрэх", href: "/auth/login" },
             ]}
           />

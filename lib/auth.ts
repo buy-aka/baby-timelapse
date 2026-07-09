@@ -31,6 +31,8 @@ export const auth = betterAuth({
       phone: { type: "string", required: false, input: true },
       // Client өөрөө тавьж чадахгүй (input:false) — зөвхөн before hook true болгоно.
       phoneVerified: { type: "boolean", required: false, input: false, defaultValue: false },
+      // Үйлчилгээний нөхцөл (/terms) зөвшөөрсөн эсэх — before hook-д шаардана.
+      termsAccepted: { type: "boolean", required: false, input: true, defaultValue: false },
     },
   },
   session: {
@@ -43,6 +45,14 @@ export const auth = betterAuth({
         // Энэ hook нь БҮХ user үүсгэх замд ажилладаг тул client шууд
         // /api/auth/sign-up/email руу хандаж ч тойрч гарах боломжгүй.
         before: async (userData) => {
+          // Үйлчилгээний нөхцөлийг зөвшөөрөөгүй бол бүртгэхгүй — checkbox-ийг
+          // client-д шалгадаг ч энд сервер талд давхар шаардана.
+          if ((userData as { termsAccepted?: boolean }).termsAccepted !== true) {
+            throw new APIError("BAD_REQUEST", {
+              message: "Үйлчилгээний нөхцөлийг зөвшөөрнө үү.",
+            })
+          }
+
           const phone = (userData as { phone?: string }).phone
           if (!phone || !isValidMongolianPhone(phone)) {
             throw new APIError("BAD_REQUEST", {

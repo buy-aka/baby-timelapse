@@ -13,6 +13,7 @@ export const authClient = createAuthClient({
     inferAdditionalFields({
       user: {
         phone: { type: "string" },
+        termsAccepted: { type: "boolean" },
       },
     }),
   ],
