@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
@@ -22,6 +23,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "file болон photoDate шаардлагатай" }, { status: 400 })
   }
 
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(photoDate)) {
+    return NextResponse.json({ error: "Огнооны формат буруу (YYYY-MM-DD)" }, { status: 400 })
+  }
+
   // Аль baby-ийн зураг болохыг тогтооно
   let babyId: string | null
   if (babyIdInput) {
@@ -36,8 +41,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Baby олдсонгүй" }, { status: 400 })
   }
 
-  const ext = file.name.split(".").pop() || "jpg"
-  const key = `${Date.now()}.${ext}`
+  // Өргөтгөлийг цэвэрлэж, санамсаргүй suffix нэмнэ — batch/зэрэгцээ upload-д
+  // Date.now() мөргөлдөхөөс сэргийлэхийн зэрэгцээ URL таагдахааргүй болно.
+  const ext =
+    (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) ||
+    "jpg"
+  const key = `${Date.now()}-${randomBytes(6).toString("hex")}.${ext}`
 
   const buffer = Buffer.from(await file.arrayBuffer())
   await uploadObject(key, buffer, file.type || "image/jpeg")

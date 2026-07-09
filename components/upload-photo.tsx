@@ -1,17 +1,28 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
-import { ImagePlus, CalendarIcon, Upload, X } from "lucide-react";
+import { ImagePlus, Upload, X } from "lucide-react";
+import { extractExifDate, fileDateFallback } from "@/lib/exif-date";
+
+// Сонгосон зураг бүр өөрийн огноотой: EXIF (дарсан огноо) → байхгүй бол
+// файлын огноо. Хэрэглэгч зураг бүр дээр нь засаж болно.
+type Item = {
+  id: string;
+  file: File; // шахагдсан хувилбар (бэлэн болмогц солигдоно)
+  preview: string;
+  date: string; // YYYY-MM-DD
+  ready: boolean; // EXIF унших + шахалт дууссан эсэх
+  failed?: boolean; // сүүлийн batch-д хуулагдаж чадаагүй
+};
 
 export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | null; onUploaded?: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [items, setItems] = useState<Item[]>([]);
   const [note, setNote] = useState("");
-  const [photoDate, setPhotoDate] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -59,56 +70,110 @@ export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | 
         resolve(new File([blob], f.name, { type: "image/jpeg" }))
       }
 
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(f) }
       img.src = url
     })
 
-  const handleFile = async (f: File) => {
-    setPreview(URL.createObjectURL(f));
-    const compressed = await compressImage(f)
-    setFile(compressed);
+  const addFiles = (files: FileList | File[]) => {
+    setError(null);
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) return;
+
+    for (const f of images) {
+      const id = crypto.randomUUID();
+      const preview = URL.createObjectURL(f);
+      // Жагсаалтад шууд нэмээд EXIF/шахалтыг ард нь хийнэ (олон том зурагт
+      // interface хөлдөхгүй).
+      setItems((prev) => [
+        ...prev,
+        { id, file: f, preview, date: fileDateFallback(f), ready: false },
+      ]);
+
+      (async () => {
+        // Огноог ЭХЛЭЭД уншина — шахахад EXIF устдаг.
+        const exifDate = await extractExifDate(f);
+        const compressed = await compressImage(f);
+        setItems((prev) =>
+          prev.map((it) =>
+            it.id === id
+              ? { ...it, file: compressed, date: exifDate ?? it.date, ready: true }
+              : it,
+          ),
+        );
+      })();
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const f = e.dataTransfer.files[0];
-    if (f?.type.startsWith("image/")) handleFile(f);
+    addFiles(e.dataTransfer.files);
   };
 
-  const clear = () => {
-    setFile(null);
-    setPreview(null);
+  const removeItem = (id: string) => {
+    setItems((prev) => {
+      const it = prev.find((x) => x.id === id);
+      if (it) URL.revokeObjectURL(it.preview);
+      return prev.filter((x) => x.id !== id);
+    });
+  };
+
+  const setItemDate = (id: string, date: string) => {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, date } : it)));
+  };
+
+  const clearAll = () => {
+    items.forEach((it) => URL.revokeObjectURL(it.preview));
+    setItems([]);
     if (fileRef.current) fileRef.current.value = "";
   };
 
   const upload = async () => {
-    if (!file) { setError("Зураг сонгоно уу"); return; }
-    if (!photoDate) { setError("Огноо оруулна уу"); return; }
+    if (items.length === 0) { setError("Зураг сонгоно уу"); return; }
+    if (items.some((it) => !it.date)) { setError("Зураг бүрийн огноог оруулна уу"); return; }
 
     setIsLoading(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("note", note);
-    formData.append("photoDate", photoDate);
-    if (babyId) formData.append("babyId", babyId);
+    const failedIds: string[] = [];
+    let done = 0;
+    for (const it of items) {
+      setProgress(`${done + 1}/${items.length} хуулж байна...`);
+      try {
+        const formData = new FormData();
+        formData.append("file", it.file);
+        formData.append("note", note);
+        formData.append("photoDate", it.date);
+        if (babyId) formData.append("babyId", babyId);
 
-    const res = await fetch("/api/upload", { method: "POST", body: formData });
-
-    if (!res.ok) {
-      setError("Upload амжилтгүй. Дахин оролдоно уу.");
-      setIsLoading(false);
-      return;
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        if (!res.ok) failedIds.push(it.id);
+      } catch {
+        failedIds.push(it.id);
+      }
+      done++;
     }
 
-    setFile(null);
-    setPreview(null);
-    setNote("");
-    setPhotoDate("");
+    setProgress(null);
     setIsLoading(false);
-    if (fileRef.current) fileRef.current.value = "";
-    onUploaded?.();
+
+    if (failedIds.length > 0) {
+      // Амжилттайг нь жагсаалтаас хасаад, бүтэлгүйтсэнийг үлдээнэ.
+      setItems((prev) => {
+        prev.filter((it) => !failedIds.includes(it.id)).forEach((it) => URL.revokeObjectURL(it.preview));
+        return prev
+          .filter((it) => failedIds.includes(it.id))
+          .map((it) => ({ ...it, failed: true }));
+      });
+      setError(`${failedIds.length} зураг хуулагдсангүй — дахин оролдоно уу.`);
+    } else {
+      clearAll();
+      setNote("");
+    }
+
+    if (done > failedIds.length) onUploaded?.();
   };
+
+  const allReady = items.every((it) => it.ready);
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-5 mb-6 shadow-sm">
@@ -116,68 +181,105 @@ export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | 
         Зураг нэмэх
       </h2>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Зураг сонгох хэсэг */}
+      <div className="flex flex-col gap-4">
+        {/* Зураг сонгох талбар */}
         <div
-          className="relative flex-shrink-0 w-full sm:w-44 h-44 rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center cursor-pointer hover:border-zinc-400 transition-colors overflow-hidden"
-          onClick={() => !preview && fileRef.current?.click()}
+          className="relative w-full rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center cursor-pointer hover:border-zinc-400 transition-colors py-6"
+          onClick={() => fileRef.current?.click()}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
         >
-          {preview ? (
-            <>
-              <img src={preview} className="w-full h-full object-cover" alt="preview" />
-              <button
-                onClick={(e) => { e.stopPropagation(); clear(); }}
-                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
-              >
-                <X size={12} />
-              </button>
-            </>
-          ) : (
-            <div className="flex flex-col items-center gap-2 text-zinc-400">
-              <ImagePlus size={28} />
-              <span className="text-xs text-center">Зураг чирэх<br />эсвэл дарах</span>
-            </div>
-          )}
+          <div className="flex flex-col items-center gap-1.5 text-zinc-400">
+            <ImagePlus size={26} />
+            <span className="text-xs text-center">
+              Зураг чирэх эсвэл дарж сонгох — олныг зэрэг сонгож болно
+            </span>
+            <span className="text-[11px] text-zinc-400/80">
+              Огноо нь зургийн мэдээллээс (EXIF) автоматаар бөглөгдөнө
+            </span>
+          </div>
           <input
             ref={fileRef}
             type="file"
             accept="image/*"
+            multiple
             className="hidden"
-            onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }}
+            onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = ""; }}
           />
         </div>
 
-        {/* Мэдээлэл оруулах */}
-        <div className="flex flex-col gap-3 flex-1">
-          <div className="relative">
-            <CalendarIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-            <Input
-              type="date"
-              value={photoDate}
-              onChange={(e) => setPhotoDate(e.target.value)}
-              className="pl-9 text-sm"
-            />
+        {/* Сонгосон зургууд — тус бүр өөрийн огноотой */}
+        {items.length > 0 && (
+          <div className="flex flex-wrap gap-3">
+            {items.map((it) => (
+              <div
+                key={it.id}
+                className={`relative w-32 flex flex-col gap-1.5 ${it.failed ? "opacity-90" : ""}`}
+              >
+                <div className="relative h-24 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={it.preview} className="w-full h-full object-cover" alt="" />
+                  {!it.ready && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span className="text-[10px] text-white">Бэлдэж байна...</span>
+                    </div>
+                  )}
+                  {it.failed && (
+                    <div className="absolute bottom-0 inset-x-0 bg-red-600/90 text-center">
+                      <span className="text-[10px] text-white">Дахин оролдоно уу</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeItem(it.id)}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                    aria-label="Зураг хасах"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+                <Input
+                  type="date"
+                  value={it.date}
+                  onChange={(e) => setItemDate(it.id, e.target.value)}
+                  className="h-8 px-2 text-xs"
+                  aria-label="Зурагны огноо"
+                />
+              </div>
+            ))}
           </div>
+        )}
 
-          <Textarea
-            placeholder="Тэмдэглэл бичих..."
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={3}
-            className="text-sm resize-none"
-          />
+        <Textarea
+          placeholder={items.length > 1 ? "Тэмдэглэл (бүх зурагт хамаарна)..." : "Тэмдэглэл бичих..."}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={2}
+          className="text-sm resize-none"
+        />
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+        {error && <p role="alert" className="text-xs text-red-500">{error}</p>}
 
-          <Button
-            onClick={upload}
-            disabled={isLoading || !file}
-            className="w-full sm:w-auto self-end"
-          >
+        <div className="flex items-center justify-between gap-3">
+          {items.length > 1 ? (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="text-xs text-zinc-500 underline hover:text-zinc-700 dark:hover:text-zinc-300"
+            >
+              Бүгдийг арилгах
+            </button>
+          ) : <span />}
+
+          <Button onClick={upload} disabled={isLoading || items.length === 0 || !allReady}>
             <Upload size={15} className="mr-2" />
-            {isLoading ? "Хуулж байна..." : "Хуулах"}
+            {isLoading
+              ? progress ?? "Хуулж байна..."
+              : !allReady && items.length > 0
+                ? "Бэлдэж байна..."
+                : items.length > 1
+                  ? `${items.length} зураг хуулах`
+                  : "Хуулах"}
           </Button>
         </div>
       </div>
