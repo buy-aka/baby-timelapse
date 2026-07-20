@@ -21,7 +21,7 @@ export default function BillingPage() {
   const [billing, setBilling] = useState<BillingState | null>(null)
   const [loading, setLoading] = useState(true)
   const [activating, setActivating] = useState<PlanId | null>(null)
-  const [justActivated, setJustActivated] = useState(false)
+  const [justPaid, setJustPaid] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -40,12 +40,27 @@ export default function BillingPage() {
     load()
   }, [load])
 
+  // wire.mn-ээс ?paid=1-тэй буцаж ирэхэд webhook хэдхэн секунд хоцорч
+  // болзошгүй тул төлөв шинэчлэгдэхийг хэсэг хугацаанд давтан шалгана.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("paid") !== "1") return
+    setJustPaid(true)
+    window.history.replaceState(null, "", "/settings/billing")
+    let n = 0
+    const timer = setInterval(() => {
+      n++
+      load()
+      if (n >= 10) clearInterval(timer)
+    }, 2000)
+    return () => clearInterval(timer)
+  }, [load])
+
+  // Багц идэвхжүүлэх = wire.mn-ий төлбөрийн хуудас руу шилжинэ.
   const activate = async (plan: PlanId) => {
     setActivating(plan)
     setError(null)
-    setJustActivated(false)
     try {
-      const res = await fetch("/api/billing/activate", {
+      const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan }),
@@ -53,13 +68,12 @@ export default function BillingPage() {
       const data = await res.json()
       if (!res.ok) {
         setError(data.error ?? "Алдаа гарлаа")
+        setActivating(null)
         return
       }
-      setJustActivated(true)
-      await load()
+      window.location.href = data.url
     } catch {
       setError("Сүлжээний алдаа")
-    } finally {
       setActivating(null)
     }
   }
@@ -133,9 +147,11 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {justActivated && (
+      {justPaid && (
         <p role="status" className="text-sm text-emerald-600 dark:text-emerald-400">
-          Багц амжилттай идэвхжлээ ✓
+          {billing.status === "active"
+            ? "Төлбөр амжилттай — багц идэвхжлээ ✓"
+            : "Төлбөр амжилттай хийгдлээ ✓ Багц хэдхэн секундэд идэвхжинэ..."}
         </p>
       )}
       {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
@@ -200,7 +216,7 @@ export default function BillingPage() {
                 onClick={() => activate(plan.id)}
               >
                 {activating === plan.id
-                  ? "Түр хүлээнэ үү..."
+                  ? "Төлбөрийн хуудас руу шилжиж байна..."
                   : canRenew
                     ? "Сунгах"
                     : isCurrent
@@ -217,7 +233,8 @@ export default function BillingPage() {
       </div>
 
       <p className="text-xs text-zinc-500">
-        Төлбөрийн систем тун удахгүй нэвтэрнэ. Асуулт байвал{" "}
+        Төлбөр wire.mn-ээр аюулгүй хийгдэнэ — QR код эсвэл банкныхаа аппаар
+        төлнө. Асуулт байвал{" "}
         <a href="mailto:info@horom.mn" className="underline">
           info@horom.mn
         </a>{" "}

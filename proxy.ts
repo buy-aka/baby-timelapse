@@ -12,6 +12,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/verify") ||
     pathname.startsWith("/api/sms") ||
+    // wire.mn-ий сервер cookie-гүй дууддаг — IP + HMAC-аар өөрөө хамгаалагдана.
+    pathname === "/api/billing/wire-webhook" ||
     pathname.startsWith("/uploads") ||
     pathname === "/favicon.ico" ||
     // PWA assets — cookie-гүй татагддаг тул auth шалгалтаас чөлөөлнө.
