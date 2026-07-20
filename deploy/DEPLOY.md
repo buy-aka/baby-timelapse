@@ -208,25 +208,50 @@ docker compose -f docker-compose.prod.yml exec -T postgres \
   Basic/туршилт 7 хоногт 1, Plus өдөрт 1 (`video_download` хүснэгтээр,
   амжилттай үүссэний дараа л тоологдоно).
 
-## Backup
+## Backup (автомат)
 
-### Postgres
+`deploy/backup.sh` нь Postgres-ийн логик dump + MinIO зургийн volume-ийн
+архивыг `/opt/baby-timelapse/backups/`-д хийж, 14 хоног хадгална.
+
+### Cron-д суулгах (өдөрт нэг удаа, 03:30-д)
+
 ```bash
-docker compose -f docker-compose.prod.yml exec -T postgres \
-  pg_dump -U app -d baby_timelapse | gzip > backup-$(date +%F).sql.gz
+cd /opt/baby-timelapse
+chmod +x deploy/backup.sh
+
+# Гараар нэг удаа туршиж үз:
+sudo deploy/backup.sh
+ls -lh backups/            # db-*.sql.gz болон minio-*.tar.gz гарсан байх ёстой
+cat backups/backup.log
+
+# root-ийн crontab-д нэмэх (docker-д sudo хэрэгтэй тул root):
+sudo crontab -e
+# дараах мөрийг нэмнэ:
+30 3 * * * /opt/baby-timelapse/deploy/backup.sh
 ```
 
-### MinIO (зураг)
-```bash
-docker run --rm --network baby-timelapse_default \
-  -v $(pwd)/backups:/backup \
-  minio/mc:latest sh -c "
-    mc alias set src http://minio:9000 \$MINIO_ROOT_USER \$MINIO_ROOT_PASSWORD &&
-    mc mirror src/baby-photos /backup/photos-\$(date +%F)
-  "
-```
+> ⚠️ Backup нь одоогоор **зөвхөн тэр серверийн диск дээр** хадгалагдана.
+> Сервер бүрэн эвдэрвэл backup ч бас алдагдана. Скриптийн `OFFSITE`
+> хэсгийг (rclone → Backblaze B2 / S3) идэвхжүүлж offsite хуулбар авахыг
+> хүчтэй зөвлөнө.
 
-Сар бүр offsite (Backblaze B2, AWS S3) руу мирор хийхийг зөвлөнө.
+### Сэргээх (restore)
+
+```bash
+cd /opt/baby-timelapse
+
+# 1. Postgres — сүүлийн dump-аас:
+gunzip -c backups/db-<DATE>.sql.gz | \
+  docker compose -f docker-compose.prod.yml exec -T postgres \
+  psql -U app -d baby_timelapse
+
+# 2. MinIO зураг — volume руу задлах (app-ыг түр зогсоож болно):
+MINIO_VOL=$(docker inspect baby-timelapse-storage \
+  -f '{{ range .Mounts }}{{ if eq .Destination "/data" }}{{ .Name }}{{ end }}{{ end }}')
+docker run --rm -v "$MINIO_VOL":/data -v "$PWD/backups":/backup \
+  alpine sh -c "tar xzf /backup/minio-<DATE>.tar.gz -C /data"
+docker compose -f docker-compose.prod.yml restart minio
+```
 
 ## Үндсэн логийг харах
 
