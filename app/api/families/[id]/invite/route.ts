@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { invitation, FAMILY_ROLES, FamilyRole } from "@/lib/db/schema"
-import { getUserFamilyRole } from "@/lib/tenant"
+import { getFamilyMemberCount, getUserFamilyRole } from "@/lib/tenant"
+import { MAX_INVITED_MEMBERS } from "@/lib/plans"
 import { randomBytes } from "crypto"
 import { headers } from "next/headers"
 
@@ -29,6 +30,15 @@ export async function POST(
   }
   if (invitedRole === "owner") {
     return NextResponse.json({ error: "Эзэмшигч урих боломжгүй" }, { status: 400 })
+  }
+
+  // Багцын хязгаар: эзэмшигчээс гадна MAX_INVITED_MEMBERS гишүүн.
+  const memberCount = await getFamilyMemberCount(id)
+  if (memberCount >= 1 + MAX_INVITED_MEMBERS) {
+    return NextResponse.json(
+      { error: `Гишүүдийн дээд хязгаарт хүрсэн (${MAX_INVITED_MEMBERS} гишүүн урих боломжтой)` },
+      { status: 403 },
+    )
   }
 
   const token = randomBytes(24).toString("hex")

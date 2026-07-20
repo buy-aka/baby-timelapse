@@ -1,10 +1,12 @@
 import { randomBytes } from "crypto"
 import { NextRequest, NextResponse } from "next/server"
+import { and, eq, isNull } from "drizzle-orm"
 import { auth } from "@/lib/auth"
+import { getBillingStatus, resolveSubscription } from "@/lib/billing"
 import { db } from "@/lib/db"
 import { babyPhotos } from "@/lib/db/schema"
 import { uploadObject } from "@/lib/storage"
-import { getUserDefaultBaby, userCanAccessBaby } from "@/lib/tenant"
+import { getBabyFamilyId, getUserDefaultBaby, userCanAccessBaby } from "@/lib/tenant"
 import { headers } from "next/headers"
 
 export async function POST(request: NextRequest) {
@@ -39,6 +41,35 @@ export async function POST(request: NextRequest) {
 
   if (!babyId) {
     return NextResponse.json({ error: "Baby олдсонгүй" }, { status: 400 })
+  }
+
+  // Багцын хугацаа дууссан бол шинэ зураг нэмэхийг хориглоно (үзэх хэвээрээ).
+  const familyId = await getBabyFamilyId(babyId)
+  if (familyId) {
+    const sub = await resolveSubscription(familyId)
+    if (getBillingStatus(sub) === "expired") {
+      return NextResponse.json(
+        { error: "Багцын хугацаа дууссан. Тохиргоо → Багц хэсгээс идэвхжүүлнэ үү." },
+        { status: 403 },
+      )
+    }
+  }
+
+  // Timelapse-ийн үндэс: нэг хүүхдэд өдөрт 1 зураг.
+  const [existing] = await db
+    .select({ id: babyPhotos.id })
+    .from(babyPhotos)
+    .where(and(
+      eq(babyPhotos.babyId, babyId),
+      eq(babyPhotos.photoDate, photoDate),
+      isNull(babyPhotos.deletedAt),
+    ))
+    .limit(1)
+  if (existing) {
+    return NextResponse.json(
+      { error: `${photoDate} өдөрт зураг аль хэдийн орсон байна` },
+      { status: 409 },
+    )
   }
 
   // Өргөтгөлийг цэвэрлэж, санамсаргүй suffix нэмнэ — batch/зэрэгцээ upload-д

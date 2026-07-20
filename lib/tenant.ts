@@ -45,6 +45,42 @@ export async function getUserFamilyRole(userId: string, familyId: string): Promi
   return row?.role ?? null
 }
 
+/** Baby-ийн харьяалагдах family-ийн ID-г буцаана */
+export async function getBabyFamilyId(babyId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ familyId: baby.familyId })
+    .from(baby)
+    .where(eq(baby.id, babyId))
+    .limit(1)
+  return row?.familyId ?? null
+}
+
+/**
+ * Хэрэглэгчийн үндсэн гэр бүл: өөрийн эзэмшдэг family эхэнд, байхгүй бол
+ * хамгийн анх элссэн family. Цомог (album) зэрэг family түвшний
+ * функцүүдэд хэрэглэнэ.
+ */
+export async function getUserPrimaryFamily(userId: string): Promise<string | null> {
+  const owned = await getUserOwnedFamily(userId)
+  if (owned) return owned
+  const [row] = await db
+    .select({ familyId: familyMember.familyId })
+    .from(familyMember)
+    .where(eq(familyMember.userId, userId))
+    .orderBy(familyMember.createdAt)
+    .limit(1)
+  return row?.familyId ?? null
+}
+
+/** Гэр бүлийн гишүүдийн тоо (эзэмшигчийг оруулаад) */
+export async function getFamilyMemberCount(familyId: string): Promise<number> {
+  const rows = await db
+    .select({ id: familyMember.id })
+    .from(familyMember)
+    .where(eq(familyMember.familyId, familyId))
+  return rows.length
+}
+
 /** Хэрэглэгчийн өөрийн (owner) гэр бүлийг буцаана. Шинэ baby үүсгэхэд хэрэглэнэ. */
 export async function getUserOwnedFamily(userId: string): Promise<string | null> {
   const [row] = await db

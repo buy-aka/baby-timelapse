@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { babyPhotos } from "@/lib/db/schema"
 import { getUserBabyIds } from "@/lib/tenant"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, isNull, ne } from "drizzle-orm"
 import { headers } from "next/headers"
 
 async function userOwnsPhoto(userId: string, photoId: string): Promise<boolean> {
@@ -57,6 +57,36 @@ export async function PATCH(
   }
 
   const { note, photo_date } = await request.json()
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(photo_date)) {
+    return NextResponse.json({ error: "Огнооны формат буруу (YYYY-MM-DD)" }, { status: 400 })
+  }
+
+  // Өдөрт 1 зургийн дүрэм огноо солиход ч үйлчилнэ: шинэ огноонд нь
+  // өөр (устгаагүй) зураг байвал татгалзана.
+  const [photo] = await db
+    .select({ babyId: babyPhotos.babyId })
+    .from(babyPhotos)
+    .where(eq(babyPhotos.id, id))
+    .limit(1)
+  if (photo) {
+    const [conflict] = await db
+      .select({ id: babyPhotos.id })
+      .from(babyPhotos)
+      .where(and(
+        eq(babyPhotos.babyId, photo.babyId),
+        eq(babyPhotos.photoDate, photo_date),
+        ne(babyPhotos.id, id),
+        isNull(babyPhotos.deletedAt),
+      ))
+      .limit(1)
+    if (conflict) {
+      return NextResponse.json(
+        { error: `${photo_date} өдөрт өөр зураг аль хэдийн байна` },
+        { status: 409 },
+      )
+    }
+  }
 
   await db
     .update(babyPhotos)

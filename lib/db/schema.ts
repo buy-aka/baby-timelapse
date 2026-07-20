@@ -176,7 +176,31 @@ export const babyPhotos = pgTable("baby_photos", {
   deletedAt: timestamp("deleted_at", { withTimezone: false }),
 }, (table) => [
   index("baby_photos_baby_date_idx").on(table.babyId, table.photoDate),
+  // /api/image/[filename] эрхийн шалгалт файлын нэрээр хайдаг
+  index("baby_photos_file_name_idx").on(table.fileName),
 ])
+
+/* ─── Plus багцын тусдаа цомог (album, family тутамд) ─── */
+
+// Timelapse-ээс тусдаа, огноонд баригдахгүй зургийн цомог. Зөвхөн Plus
+// багцтай гэр бүлд нээлттэй, нийт хэмжээ нь ALBUM_LIMIT_BYTES-ээр
+// хязгаарлагдана (size баганын нийлбэрээр тоолно). Устгахад мөр болон
+// storage дахь объектыг хамт устгадаг (soft delete БИШ) — квот үнэн зөв
+// үлдэж, диск чөлөөлөгдөнө.
+export const albumPhoto = pgTable("album_photo", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: uuid("family_id").notNull().references(() => family.id, { onDelete: "cascade" }),
+  uploadedBy: text("uploaded_by").references(() => user.id, { onDelete: "set null" }),
+  fileName: text("file_name").notNull(),
+  size: integer("size").notNull(), // байтаар
+  note: text("note"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("album_photo_family_idx").on(table.familyId, table.createdAt),
+  index("album_photo_file_name_idx").on(table.fileName),
+])
+
+export type AlbumPhoto = typeof albumPhoto.$inferSelect
 
 export const invitation = pgTable("invitation", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),

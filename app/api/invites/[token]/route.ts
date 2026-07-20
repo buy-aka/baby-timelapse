@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { invitation, family, familyMember, user } from "@/lib/db/schema"
+import { getFamilyMemberCount } from "@/lib/tenant"
+import { MAX_INVITED_MEMBERS } from "@/lib/plans"
 import { and, eq } from "drizzle-orm"
 import { headers } from "next/headers"
 
@@ -64,6 +66,15 @@ export async function POST(
     .limit(1)
 
   if (!existing) {
+    // Урилга үүссэнээс хойш гишүүд нэмэгдсэн байж болзошгүй — эндээс
+    // (эрх олгох агшинд) хязгаарыг дахин шалгана.
+    const memberCount = await getFamilyMemberCount(inv.familyId)
+    if (memberCount >= 1 + MAX_INVITED_MEMBERS) {
+      return NextResponse.json(
+        { error: `Гэр бүлийн гишүүдийн дээд хязгаарт хүрсэн байна (${MAX_INVITED_MEMBERS} гишүүн)` },
+        { status: 403 },
+      )
+    }
     await db.insert(familyMember).values({
       familyId: inv.familyId,
       userId: session.user.id,

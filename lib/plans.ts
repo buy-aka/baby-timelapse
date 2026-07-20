@@ -3,6 +3,15 @@
 
 export const TRIAL_DAYS = 7
 
+/* ── Бодитоор мөрддөг хязгаарууд (API талд шалгагдана) ── */
+
+// Эзэмшигчээс гадна урьж болох гишүүдийн тоо (бүх багцад ижил)
+export const MAX_INVITED_MEMBERS = 6
+// Timelapse: нэг хүүхдэд өдөрт 1 зураг (бүх багцад ижил — бүтээгдэхүүний үндэс)
+export const PHOTOS_PER_DAY = 1
+// Plus багцын тусдаа цомгийн нийт багтаамж
+export const ALBUM_LIMIT_BYTES = 20 * 1024 * 1024 * 1024 // 20GB
+
 export type PlanId = "basic" | "plus"
 
 export type Plan = {

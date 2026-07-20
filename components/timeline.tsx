@@ -47,10 +47,16 @@ function PhotoCard({
     photo_date: photo.photo_date.slice(0, 10),
   })
   const [imgError, setImgError] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const save = async () => {
-    await onSave(photo.id, editState)
-    setEditing(false)
+    try {
+      setSaveError(null)
+      await onSave(photo.id, editState)
+      setEditing(false)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Хадгалж чадсангүй")
+    }
   }
 
   const date = new Date(photo.photo_date).toLocaleDateString("mn-MN", {
@@ -92,6 +98,7 @@ function PhotoCard({
           <div className="flex flex-col gap-2">
             <Input type="date" value={editState.photo_date} onChange={(e) => setEditState(s => ({ ...s, photo_date: e.target.value }))} className="text-sm h-8" />
             <Textarea value={editState.note} onChange={(e) => setEditState(s => ({ ...s, note: e.target.value }))} placeholder="Тэмдэглэл..." rows={2} className="text-sm resize-none" />
+            {saveError && <p className="text-xs text-red-500">{saveError}</p>}
             <div className="flex gap-2">
               <Button size="sm" className="flex-1 h-7 text-xs" onClick={save}><Check size={12} className="mr-1" />Хадгалах</Button>
               <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => setEditing(false)}><X size={12} className="mr-1" />Болих</Button>
@@ -323,11 +330,15 @@ export default function Timeline({ babyId }: { babyId?: string | null }) {
   }
 
   const savePhoto = async (id: string, state: EditState) => {
-    await fetch(`/api/photos/${id}`, {
+    const res = await fetch(`/api/photos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(state),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      throw new Error(data?.error || "Хадгалж чадсангүй")
+    }
   }
 
   return (

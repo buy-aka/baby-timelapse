@@ -57,6 +57,13 @@
       "when": 1783565791678,
       "tag": "0007_large_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784516579907,
+      "tag": "0008_flawless_tyger_tiger",
+      "breakpoints": true
     }
   ]
 }

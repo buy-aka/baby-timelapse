@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3"
 
 const endpoint = process.env.S3_ENDPOINT!
 const region = process.env.S3_REGION || "us-east-1"
@@ -31,4 +31,11 @@ export async function getObject(key: string) {
     Key: key,
   }))
   return res
+}
+
+export async function deleteObject(key: string) {
+  await s3.send(new DeleteObjectCommand({
+    Bucket: bucket,
+    Key: key,
+  }))
 }

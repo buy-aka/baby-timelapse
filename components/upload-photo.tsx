@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ImagePlus, Upload, X } from "lucide-react";
 import { extractExifDate, fileDateFallback } from "@/lib/exif-date";
+import { compressImage } from "@/lib/compress-image";
 
 // Сонгосон зураг бүр өөрийн огноотой: EXIF (дарсан огноо) → байхгүй бол
 // файлын огноо. Хэрэглэгч зураг бүр дээр нь засаж болно.
@@ -16,6 +17,7 @@ type Item = {
   date: string; // YYYY-MM-DD
   ready: boolean; // EXIF унших + шахалт дууссан эсэх
   failed?: boolean; // сүүлийн batch-д хуулагдаж чадаагүй
+  failMsg?: string; // серверийн буцаасан шалтгаан (ж: огноо давхардсан)
 };
 
 export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | null; onUploaded?: () => void }) {
@@ -25,54 +27,6 @@ export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | 
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const compressImage = (f: File): Promise<File> =>
-    new Promise((resolve) => {
-      const TARGET = 4 * 1024 * 1024 // 4MB — Верцелийн 4.5MB хязгаараас доор
-      const img = new Image()
-      const url = URL.createObjectURL(f)
-
-      img.onload = async () => {
-        URL.revokeObjectURL(url)
-
-        // Файл аль хэдийн хангалттай жижиг бол шахахгүй
-        if (f.size <= TARGET) { resolve(f); return }
-
-        const toBlob = (w: number, h: number, q: number): Promise<Blob> =>
-          new Promise((res) => {
-            const canvas = document.createElement("canvas")
-            canvas.width = w; canvas.height = h
-            canvas.getContext("2d")!.drawImage(img, 0, 0, w, h)
-            canvas.toBlob((b) => res(b!), "image/jpeg", q)
-          })
-
-        // Эхний таамаглал: файлын хэмжээний харьцаагаар scale тооцно
-        let scale = Math.sqrt(TARGET / f.size)
-        let quality = 0.92
-        let w = Math.round(img.width * scale)
-        let h = Math.round(img.height * scale)
-
-        let blob = await toBlob(w, h, quality)
-
-        // Хэтэрсэн бол чанар болон хэмжээг ижил дарааллаар бууруулна
-        while (blob.size > TARGET && quality > 0.3) {
-          quality -= 0.08
-          blob = await toBlob(w, h, quality)
-
-          // Чанар хангалтгүй болвол хэмжээг ч бас багасгана
-          if (blob.size > TARGET && quality <= 0.5) {
-            scale *= 0.8
-            w = Math.round(img.width * scale)
-            h = Math.round(img.height * scale)
-          }
-        }
-
-        resolve(new File([blob], f.name, { type: "image/jpeg" }))
-      }
-
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(f) }
-      img.src = url
-    })
 
   const addFiles = (files: FileList | File[]) => {
     setError(null);
@@ -134,7 +88,7 @@ export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | 
     setIsLoading(true);
     setError(null);
 
-    const failedIds: string[] = [];
+    const failMsgs = new Map<string, string>();
     let done = 0;
     for (const it of items) {
       setProgress(`${done + 1}/${items.length} хуулж байна...`);
@@ -146,9 +100,12 @@ export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | 
         if (babyId) formData.append("babyId", babyId);
 
         const res = await fetch("/api/upload", { method: "POST", body: formData });
-        if (!res.ok) failedIds.push(it.id);
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          failMsgs.set(it.id, data?.error || "Хуулж чадсангүй");
+        }
       } catch {
-        failedIds.push(it.id);
+        failMsgs.set(it.id, "Сүлжээний алдаа — дахин оролдоно уу");
       }
       done++;
     }
@@ -156,21 +113,21 @@ export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | 
     setProgress(null);
     setIsLoading(false);
 
-    if (failedIds.length > 0) {
-      // Амжилттайг нь жагсаалтаас хасаад, бүтэлгүйтсэнийг үлдээнэ.
+    if (failMsgs.size > 0) {
+      // Амжилттайг нь жагсаалтаас хасаад, бүтэлгүйтсэнийг шалтгаантай нь үлдээнэ.
       setItems((prev) => {
-        prev.filter((it) => !failedIds.includes(it.id)).forEach((it) => URL.revokeObjectURL(it.preview));
+        prev.filter((it) => !failMsgs.has(it.id)).forEach((it) => URL.revokeObjectURL(it.preview));
         return prev
-          .filter((it) => failedIds.includes(it.id))
-          .map((it) => ({ ...it, failed: true }));
+          .filter((it) => failMsgs.has(it.id))
+          .map((it) => ({ ...it, failed: true, failMsg: failMsgs.get(it.id) }));
       });
-      setError(`${failedIds.length} зураг хуулагдсангүй — дахин оролдоно уу.`);
+      setError(`${failMsgs.size} зураг хуулагдсангүй.`);
     } else {
       clearAll();
       setNote("");
     }
 
-    if (done > failedIds.length) onUploaded?.();
+    if (done > failMsgs.size) onUploaded?.();
   };
 
   const allReady = items.every((it) => it.ready);
@@ -225,8 +182,8 @@ export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | 
                     </div>
                   )}
                   {it.failed && (
-                    <div className="absolute bottom-0 inset-x-0 bg-red-600/90 text-center">
-                      <span className="text-[10px] text-white">Дахин оролдоно уу</span>
+                    <div className="absolute bottom-0 inset-x-0 bg-red-600/90 text-center px-1">
+                      <span className="text-[10px] text-white">Хуулагдсангүй</span>
                     </div>
                   )}
                   <button
@@ -245,6 +202,9 @@ export default function UploadPhoto({ babyId, onUploaded }: { babyId?: string | 
                   className="h-8 px-2 text-xs"
                   aria-label="Зурагны огноо"
                 />
+                {it.failMsg && (
+                  <p className="text-[10px] leading-tight text-red-500">{it.failMsg}</p>
+                )}
               </div>
             ))}
           </div>

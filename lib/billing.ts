@@ -24,6 +24,12 @@ export function getBillingStatus(sub: Subscription, now = new Date()): BillingSt
   return "expired"
 }
 
+// Цомог (album) — зөвхөн идэвхтэй Plus багцад нээлттэй. Туршилтын хугацаанд
+// Plus-аа (одоогоор төлбөргүй) идэвхжүүлээд ашиглана.
+export function canUseAlbum(sub: Subscription, now = new Date()): boolean {
+  return sub.plan === "plus" && getBillingStatus(sub, now) === "active"
+}
+
 // Гэр бүлийн захиалгыг буцаана; байхгүй бол одооноос TRIAL_DAYS хоногийн
 // туршилттайгаар үүсгэнэ. Ингэснээр хуучин бүртгэлтэй гэр бүлүүд ч анх
 // хандахдаа бүрэн туршилтын хугацаа авна (migration/backfill шаардахгүй).
