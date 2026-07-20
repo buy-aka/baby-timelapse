@@ -12,6 +12,12 @@ export const PHOTOS_PER_DAY = 1
 // Plus багцын тусдаа цомгийн нийт багтаамж
 export const ALBUM_LIMIT_BYTES = 20 * 1024 * 1024 * 1024 // 20GB
 
+// Timelapse бичлэг татах давтамж (rolling хоног): Basic/туршилт 7 хоногт 1,
+// Plus өдөрт 1.
+export function videoIntervalDays(plan: PlanId | null | undefined): number {
+  return plan === "plus" ? 1 : 7
+}
+
 export type PlanId = "basic" | "plus"
 
 export type Plan = {

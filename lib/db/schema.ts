@@ -202,6 +202,22 @@ export const albumPhoto = pgTable("album_photo", {
 
 export type AlbumPhoto = typeof albumPhoto.$inferSelect
 
+/* ─── Timelapse бичлэг татсан түүх (rate limit-д) ─── */
+
+// Багцын хязгаар: Basic/туршилт 7 хоногт 1, Plus өдөрт 1 (rolling цонх).
+// Хязгаар family түвшинд тоологдоно — /api/video сүүлийн бичлэгийг эндээс
+// шалгаж, амжилттай үүсгэсний ДАРАА мөр нэмдэг.
+export const videoDownload = pgTable("video_download", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  familyId: uuid("family_id").notNull().references(() => family.id, { onDelete: "cascade" }),
+  babyId: uuid("baby_id").notNull().references(() => baby.id, { onDelete: "cascade" }),
+  downloadedBy: text("downloaded_by").references(() => user.id, { onDelete: "set null" }),
+  frameCount: integer("frame_count").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("video_download_family_idx").on(table.familyId, table.createdAt),
+])
+
 export const invitation = pgTable("invitation", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   familyId: uuid("family_id").notNull().references(() => family.id, { onDelete: "cascade" }),

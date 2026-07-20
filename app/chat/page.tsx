@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Timeline from '@/components/timeline'
 import UploadPhoto from '@/components/upload-photo'
 import BabySelector, { type BabyOption } from '@/components/baby-selector'
+import VideoDownload from '@/components/video-download'
 
 export default function Page() {
   const [babies, setBabies] = useState<BabyOption[]>([])
@@ -19,12 +20,13 @@ export default function Page() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3">
         <BabySelector
           babies={babies}
           value={selectedBabyId}
           onChange={setSelectedBabyId}
         />
+        <VideoDownload babyId={selectedBabyId} />
       </div>
 
       <UploadPhoto
