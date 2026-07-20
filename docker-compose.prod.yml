@@ -73,6 +73,12 @@ services:
       # wire.mn төлбөрийн gateway (dashboard → API key / Webhook)
       WIRE_API_KEY: ${WIRE_API_KEY:-}
       WIRE_WEBHOOK_SECRET: ${WIRE_WEBHOOK_SECRET:-}
+      # Google Workspace / Gmail SMTP (info@horom.mn App Password)
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
 
   nginx:
     image: nginx:1.27-alpine

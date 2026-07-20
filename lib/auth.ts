@@ -6,6 +6,18 @@ import { db } from "@/lib/db"
 import * as schema from "@/lib/db/schema"
 import { isValidMongolianPhone } from "@/lib/verify"
 import { phoneLoginPlugin } from "@/lib/auth-phone-login-plugin"
+import { isMailConfigured, sendMail } from "@/lib/mail"
+
+/** Нууц үг сэргээх мэйлийн энгийн, найдвартай (inline-style) HTML. */
+function resetPasswordHtml(url: string): string {
+  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#111">
+  <h2 style="margin:0 0 12px">Нууц үг сэргээх</h2>
+  <p style="margin:0 0 16px;line-height:1.5">Та Horom дээрх нууц үгээ сэргээхийг хүссэн байна. Доорх товчоор шинэ нууц үг тавина уу.</p>
+  <a href="${url}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">Нууц үг сэргээх</a>
+  <p style="margin:16px 0 0;font-size:13px;color:#666;line-height:1.5">Товч ажиллахгүй бол энэ холбоосыг хуулна уу:<br>${url}</p>
+  <p style="margin:12px 0 0;font-size:12px;color:#999">Хэрэв та энэ хүсэлтийг гаргаагүй бол мэйлийг үл тоомсорлоно уу.</p>
+</div>`
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -21,8 +33,17 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
-      // TODO: production-д имэйл провайдер (Resend, etc.) холбоно
-      console.log(`[Auth] Reset password for ${user.email}: ${url}`)
+      // SMTP тохируулаагүй бол лог-д хэвлээд өнгөрнө (dev/staging).
+      if (!isMailConfigured()) {
+        console.log(`[Auth] Reset password for ${user.email}: ${url}`)
+        return
+      }
+      await sendMail({
+        to: user.email,
+        subject: "Horom — нууц үг сэргээх",
+        text: `Нууц үгээ сэргээхийг хүссэн байна.\n\nЭнэ холбоосоор шинэ нууц үг тавина уу:\n${url}\n\nХэрэв та хүсээгүй бол энэ мэйлийг үл тоомсорлоно уу.`,
+        html: resetPasswordHtml(url),
+      })
     },
   },
   user: {
