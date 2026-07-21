@@ -23,6 +23,7 @@ import {
 import { LandingFaq } from "@/components/landing/faq";
 import { ContactForm } from "@/components/landing/contact-form";
 import { LogoMark } from "@/components/logo";
+import { InstallApp } from "@/components/install-app";
 import { PLANS, TRIAL_DAYS, formatMnt } from "@/lib/plans";
 
 export const metadata: Metadata = {
@@ -376,6 +377,9 @@ export default function HomePage() {
         </p>
       </section>
 
+      {/* ───────── Апп суулгах (төхөөрөмжид тохирсон заавар) ───────── */}
+      <InstallApp />
+
       {/* ───────── FAQ ───────── */}
       <section id="faq" className="mx-auto max-w-6xl px-6 py-20">
         <div className="grid items-start gap-12 lg:grid-cols-2">
@@ -528,6 +532,7 @@ function Nav() {
     { href: "#about", label: "Танилцуулга" },
     { href: "#features", label: "Онцлог" },
     { href: "#pricing", label: "Үнэ" },
+    { href: "#install", label: "Апп" },
     { href: "#faq", label: "Асуулт" },
     { href: "#contact", label: "Холбоо барих" },
   ];
