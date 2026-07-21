@@ -1,9 +1,9 @@
 import Link from "next/link"
 
-// Horom-ийн лого — «өсөлтийн шугам»: цаг хугацаагаар өсөх 4 багана.
-// Эхний 3 нь брэнд ногоон, хамгийн өндөр (сүүлийн) нь шар — өсөлтийн
-// оргил, дулаан «хором» агшин. Брэнд өнгө tailwind.config.ts-тэй нийцнэ
-// (ногоон #1b6b53, шар #f5c542, гүн ногоон #123f31, цөцгий #f7f4ec).
+// Horom-ийн лого — «томрох цэгүүд»: цаг хугацаагаар жижгээс томрон дээшлэх
+// 4 дугуй. Цэг бүр нэг агшин/зураг — хүүхэд өсөж, дурсамж хуримтлагдана.
+// Эхний 3 нь брэнд ногоон, хамгийн том (сүүлийн) нь шар. Брэнд өнгө
+// tailwind.config.ts-тэй нийцнэ (ногоон #1b6b53, шар #f5c542, цөцгий #f7f4ec).
 
 export function LogoMark({
   size = 28,
@@ -12,11 +12,11 @@ export function LogoMark({
 }: {
   size?: number
   className?: string
-  // "brand" — ногоон багана (цайвар дэвсгэрт); "light" — цөцгий багана
-  // (гүн ногоон/бараан дэвсгэрт). Хамгийн өндөр багана хоёуланд шар.
+  // "brand" — ногоон цэг (цайвар дэвсгэрт); "light" — цөцгий цэг
+  // (гүн ногоон/бараан дэвсгэрт). Хамгийн том цэг хоёуланд шар.
   tone?: "brand" | "light"
 }) {
-  const bar = tone === "light" ? "#f7f4ec" : "#1b6b53"
+  const dot = tone === "light" ? "#f7f4ec" : "#1b6b53"
   return (
     <svg
       width={size}
@@ -28,10 +28,10 @@ export function LogoMark({
       role="img"
       aria-label="Horom"
     >
-      <rect x="2" y="19" width="5" height="8" rx="2" fill={bar} />
-      <rect x="10" y="14" width="5" height="13" rx="2" fill={bar} />
-      <rect x="18" y="9" width="5" height="18" rx="2" fill={bar} />
-      <rect x="26" y="2" width="5" height="25" rx="2" fill="#f5c542" />
+      <circle cx="5" cy="26" r="2" fill={dot} />
+      <circle cx="12" cy="20.5" r="3" fill={dot} />
+      <circle cx="20" cy="14.5" r="4" fill={dot} />
+      <circle cx="27" cy="7" r="5" fill="#f5c542" />
     </svg>
   )
 }
