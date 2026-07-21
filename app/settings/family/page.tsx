@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Users, Mail, X, Send, Copy, Check } from "lucide-react"
+import QRCode from "qrcode"
+import { Users, Phone, X, Send, Copy, Check, Share2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -25,7 +26,7 @@ interface Member {
 
 interface PendingInvite {
   id: string
-  email: string
+  phone: string | null
   role: string
   createdAt: string
   expiresAt: string
@@ -43,9 +44,10 @@ export default function FamilyPage() {
   const [activeFamily, setActiveFamily] = useState<Family | null>(null)
   const [members, setMembers] = useState<Member[]>([])
   const [pending, setPending] = useState<PendingInvite[]>([])
-  const [inviteEmail, setInviteEmail] = useState("")
+  const [invitePhone, setInvitePhone] = useState("")
   const [inviteRole, setInviteRole] = useState<"parent" | "member" | "viewer">("member")
   const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null)
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -64,13 +66,21 @@ export default function FamilyPage() {
     })
   }, [activeFamily])
 
+  // Урилгын холбоос үүсмэгц QR код зурна.
+  useEffect(() => {
+    if (!lastInviteUrl) { setQrDataUrl(null); return }
+    QRCode.toDataURL(lastInviteUrl, { width: 220, margin: 1, color: { dark: "#123f31", light: "#ffffff" } })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null))
+  }, [lastInviteUrl])
+
   const sendInvite = async () => {
-    if (!activeFamily || !inviteEmail.trim()) return
+    if (!activeFamily || !invitePhone.trim()) return
     setError(null)
     const res = await fetch(`/api/families/${activeFamily.id}/invite`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+      body: JSON.stringify({ phone: invitePhone, role: inviteRole }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
@@ -79,8 +89,7 @@ export default function FamilyPage() {
     }
     const data = await res.json()
     setLastInviteUrl(data.inviteUrl)
-    setInviteEmail("")
-    // refresh pending
+    setInvitePhone("")
     const m = await fetch(`/api/families/${activeFamily.id}/members`).then(r => r.json())
     setPending(m.pending || [])
   }
@@ -103,6 +112,24 @@ export default function FamilyPage() {
     navigator.clipboard.writeText(lastInviteUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const shareInvite = async () => {
+    if (!lastInviteUrl) return
+    // Мобайл дээр native share хуудас нээгдэнэ (Messenger, мессеж гэх мэт).
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${activeFamily?.name} — гэр бүлийн урилга`,
+          text: "Horom дээр хүүхдийн өсөлтийн дурсамжид нэгдээрэй:",
+          url: lastInviteUrl,
+        })
+      } catch {
+        // Хэрэглэгч болих — алдаа биш.
+      }
+    } else {
+      copyInviteUrl()
+    }
   }
 
   if (!activeFamily) {
@@ -168,9 +195,9 @@ export default function FamilyPage() {
           <div className="flex flex-col gap-2">
             {pending.map(p => (
               <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700">
-                <Mail size={16} className="text-zinc-400" />
+                <Phone size={16} className="text-zinc-400" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{p.email}</p>
+                  <p className="text-sm truncate">{p.phone || "Дугааргүй"}</p>
                   <p className="text-xs text-zinc-500">
                     {ROLE_LABEL[p.role]} · {new Date(p.expiresAt).toLocaleDateString("mn-MN")}-нд дуусна
                   </p>
@@ -187,12 +214,13 @@ export default function FamilyPage() {
           <h3 className="text-sm font-semibold mb-3">Урих</h3>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
-              <Label className="text-xs">Email</Label>
+              <Label className="text-xs">Утасны дугаар</Label>
               <Input
-                type="email"
-                placeholder="grandma@example.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
+                type="tel"
+                inputMode="numeric"
+                placeholder="99xxxxxx"
+                value={invitePhone}
+                onChange={(e) => setInvitePhone(e.target.value)}
               />
             </div>
             <div className="grid gap-1.5">
@@ -210,18 +238,34 @@ export default function FamilyPage() {
             {error && <p className="text-xs text-red-500">{error}</p>}
             <Button size="sm" onClick={sendInvite}>
               <Send size={13} className="mr-1" />
-              Урилга илгээх
+              Урилга үүсгэх
             </Button>
 
             {lastInviteUrl && (
-              <div className="flex items-center gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <code className="flex-1 text-xs truncate text-blue-700 dark:text-blue-300">{lastInviteUrl}</code>
-                <button
-                  onClick={copyInviteUrl}
-                  className="w-7 h-7 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/40 flex items-center justify-center text-blue-600"
-                >
-                  {copied ? <Check size={13} /> : <Copy size={13} />}
-                </button>
+              <div className="flex flex-col items-center gap-3 p-4 rounded-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+                <p className="text-xs text-zinc-500 text-center">
+                  Доорх QR эсвэл холбоосыг урьж буй хүндээ илгээгээрэй
+                </p>
+                {qrDataUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={qrDataUrl} alt="Урилгын QR код" width={180} height={180} className="rounded-lg" />
+                )}
+                <div className="flex items-center gap-2 w-full">
+                  <code className="flex-1 text-xs truncate text-zinc-600 dark:text-zinc-300 px-2 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800">
+                    {lastInviteUrl}
+                  </code>
+                  <button
+                    onClick={copyInviteUrl}
+                    className="w-8 h-8 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-500 shrink-0"
+                    aria-label="Холбоос хуулах"
+                  >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                </div>
+                <Button size="sm" variant="outline" className="w-full" onClick={shareInvite}>
+                  <Share2 size={13} className="mr-1.5" />
+                  Хуваалцах
+                </Button>
               </div>
             )}
           </div>

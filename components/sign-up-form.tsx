@@ -98,7 +98,7 @@ export function SignUpForm({
     redirectAfterAuth();
   }, [email, password, name, phone, termsAccepted, redirectAfterAuth]);
 
-  // verify.mn статус шалгах (poll бүрт болон "Мессеж шалгах" товчинд).
+  // verify.mn статус шалгах (poll бүрд болон "Мессеж шалгах" товчинд).
   const checkStatus = useCallback(
     async (sessionId: string) => {
       try {

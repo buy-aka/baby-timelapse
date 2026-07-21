@@ -15,7 +15,6 @@ export async function GET(
   const [inv] = await db
     .select({
       id: invitation.id,
-      email: invitation.email,
       role: invitation.role,
       familyId: invitation.familyId,
       familyName: family.name,

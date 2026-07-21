@@ -11,7 +11,6 @@ import { authClient } from "@/lib/auth-client"
 interface InviteInfo {
   familyName: string
   invitedByName: string
-  email: string
   role: string
 }
 

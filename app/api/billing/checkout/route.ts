@@ -12,7 +12,7 @@ import { wireCreateCheckoutSession, wireCreatePaymentIntent } from "@/lib/wire"
 // POST /api/billing/checkout — { plan } → wire.mn төлбөрийн хуудасны URL.
 // Дүн, багц, intent id-г ХҮСЭЛТИЙН АГШИНД захиалгад бинд хийнэ: webhook
 // зөвхөн энэ гурвыг тулгаж идэвхжүүлдэг тул "бага дүн төлөөд өндөр багц
-// авах" боломжгүй. Шинэ checkout эхлүүлэх бүрт reference солигдоно —
+// авах" боломжгүй. Шинэ checkout эхлүүлэх бүрд reference солигдоно —
 // хуучин (төлөгдөөгүй) checkout хуудас хүчингүй болно.
 export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() })

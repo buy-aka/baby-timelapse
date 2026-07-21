@@ -29,7 +29,7 @@ export function isValidMongolianPhone(phone: string): boolean {
   return /^[6-9]\d{7}$/.test(phone)
 }
 
-/** Санамсаргүй 6 оронтой баталгаажуулах код. Session бүрт шинээр үүсгэнэ. */
+/** Санамсаргүй 6 оронтой баталгаажуулах код. Session бүрд шинээр үүсгэнэ. */
 export function generateSmsCode(): string {
   return String(randomInt(100000, 1000000))
 }

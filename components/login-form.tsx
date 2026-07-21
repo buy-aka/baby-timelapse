@@ -88,7 +88,7 @@ export function LoginForm({
     redirectAfterAuth();
   };
 
-  // verify.mn "login" RULE-ийн статус шалгах (poll бүрт болон "Мессеж шалгах" товчинд).
+  // verify.mn "login" RULE-ийн статус шалгах (poll бүрд болон "Мессеж шалгах" товчинд).
   const checkPhoneStatus = useCallback(
     async (id: string) => {
       try {

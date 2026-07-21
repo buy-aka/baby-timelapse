@@ -7,7 +7,7 @@ import { isValidMongolianPhone } from "@/lib/verify"
 
 // verify.mn "login" RULE-ийн тогтмол утгууд. Одоогоор нэг л shortcode
 // байдаг (docs). PREFIX нь RULE үүсгэхэд verify.mn санамсаргүй үүсгэдэг тул
-// орчин бүрт өөр байж болно — env-ээр тохируулна.
+// орчин бүрд өөр байж болно — env-ээр тохируулна.
 const SHORTCODE = "144773"
 const PREFIX = process.env.VERIFY_MN_LOGIN_PREFIX
 const CHALLENGE_TTL_MS = 5 * 60 * 1000

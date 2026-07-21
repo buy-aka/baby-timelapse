@@ -35,7 +35,7 @@ export async function GET(
   const pending = await db
     .select({
       id: invitation.id,
-      email: invitation.email,
+      phone: invitation.phone,
       role: invitation.role,
       createdAt: invitation.createdAt,
       expiresAt: invitation.expiresAt,

@@ -4,7 +4,7 @@ import { db } from "@/lib/db"
 import { phoneLoginChallenge } from "@/lib/db/schema"
 
 // verify.mn-ий "login" RULE-ийн callback. Хэрэглэгч 144773 руу
-// "<PREFIX>:<CODE>" илгээх бүрт GET хүсэлт эндрүү ирнэ. Body байхгүй,
+// "<PREFIX>:<CODE>" илгээх бүрд GET хүсэлт эндрүү ирнэ. Body байхгүй,
 // 3 секундэд багтаан 2xx буцаах ёстой (docs). Зөвхөн мэдэгдэл — жинхэнэ
 // session-ийг browser-ийн polling (app/api/auth/phone-login/status) үүсгэнэ,
 // учир нь энэ хүсэлт нь verify.mn-ий сервер рүү ирж байгаа бөгөөд

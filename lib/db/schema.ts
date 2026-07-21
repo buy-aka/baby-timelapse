@@ -114,13 +114,13 @@ export const family = pgTable("family", {
 
 /* ─── Багцын захиалга (subscription, family тутамд нэг) ─── */
 
-// Гэр бүл бүрт нэг захиалга. Төлөв нь хадгалагдахгүй — огноонуудаас гарна:
+// Гэр бүл бүрд нэг захиалга. Төлөв нь хадгалагдахгүй — огноонуудаас гарна:
 //   plan тавигдсан && periodEndsAt > now  → идэвхтэй (төлбөртэй)
 //   үгүй бол trialEndsAt > now            → туршилтын хугацаа
 //   аль нь ч биш                           → дууссан
 // requestedPlan/requestedAmountMnt/paymentReference — хэрэглэгч багц сонгож
 // шилжүүлэг хийхийг хүлээж буй үед бөглөгдөнө. Дүнг хүсэлтийн агшинд
-// баазад тогтоож, reference-ийг багц солигдох бүрт шинэчилдэг тул
+// баазад тогтоож, reference-ийг багц солигдох бүрд шинэчилдэг тул
 // "бага дүн төлөөд өндөр багц авах" боломжгүй. Баталгаажуулмагц гурвууланг
 // нь цэвэрлэж plan/periodEndsAt-ыг тавина (deploy/DEPLOY.md-ийн SQL-ийг үз).
 export const subscription = pgTable("subscription", {
@@ -221,7 +221,11 @@ export const videoDownload = pgTable("video_download", {
 export const invitation = pgTable("invitation", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   familyId: uuid("family_id").notNull().references(() => family.id, { onDelete: "cascade" }),
-  email: text("email").notNull(),
+  // Урьж буй хүний холбоо барих. Одоо утасны дугаараар урина (8 орон);
+  // урилгыг холбоос/QR-аар гараар илгээдэг тул зөвхөн тэмдэглэлийн шинжтэй.
+  // email нь хуучин урилгуудад зориулж nullable үлдэв.
+  email: text("email"),
+  phone: text("phone"),
   role: text("role").notNull().$type<FamilyRole>(),
   token: text("token").notNull().unique(),
   invitedBy: text("invited_by").notNull().references(() => user.id, { onDelete: "cascade" }),
@@ -230,7 +234,7 @@ export const invitation = pgTable("invitation", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("invitation_family_idx").on(table.familyId),
-  index("invitation_email_idx").on(table.email),
+  index("invitation_phone_idx").on(table.phone),
 ])
 
 export type Family = typeof family.$inferSelect

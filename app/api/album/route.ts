@@ -20,7 +20,7 @@ async function getUsedBytes(familyId: string): Promise<number> {
   return Number(row?.used ?? 0)
 }
 
-// Цомгийн жагсаалт + ашиглалт. Зургууд нь гишүүн бүрт харагдана (багц
+// Цомгийн жагсаалт + ашиглалт. Зургууд нь гишүүн бүрд харагдана (багц
 // дууссан ч үзэх эрх хаагдахгүй); харин enabled=false үед шинээр нэмж
 // чадахгүй.
 export async function GET(request: NextRequest) {
