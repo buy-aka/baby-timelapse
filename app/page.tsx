@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 import {
-  Heart,
   ArrowRight,
   Camera,
   Users,
@@ -23,6 +22,7 @@ import {
 
 import { LandingFaq } from "@/components/landing/faq";
 import { ContactForm } from "@/components/landing/contact-form";
+import { LogoMark } from "@/components/logo";
 import { PLANS, TRIAL_DAYS, formatMnt } from "@/lib/plans";
 
 export const metadata: Metadata = {
@@ -499,7 +499,7 @@ export default function HomePage() {
 
               <div className="mt-8 flex flex-col gap-5">
                 <ContactItem icon={<Phone size={18} />} label="Утас" value="+976 90442255" />
-                <ContactItem icon={<Mail size={18} />} label="Имэйл" value="buyka.1776@gmail.com" />
+                <ContactItem icon={<Mail size={18} />} label="Имэйл" value="info@horom.mn" />
                 <ContactItem
                   icon={<MapPin size={18} />}
                   label="Хаяг"
@@ -535,9 +535,7 @@ function Nav() {
     <header className="sticky top-0 z-50 border-b border-neutral-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="#home" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-white">
-            <Heart size={18} fill="white" />
-          </span>
+          <LogoMark size={30} />
           <span className="text-xl font-bold tracking-tight text-neutral-900">
             Horom
           </span>
@@ -582,7 +580,7 @@ function Footer() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-2">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
-                <Heart size={18} fill="white" />
+                <LogoMark size={22} tone="light" />
               </span>
               <span className="text-xl font-bold">Horom</span>
             </div>

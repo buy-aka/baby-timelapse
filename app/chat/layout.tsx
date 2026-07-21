@@ -5,6 +5,7 @@ import { Settings } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { getBillingStatus, resolveSubscription } from "@/lib/billing"
 import { getUserBabyIds, getUserPrimaryFamily } from "@/lib/tenant"
+import { Logo } from "@/components/logo"
 import { LogoutButton } from "@/components/logout-button"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 
@@ -27,7 +28,7 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
       <header className="border-b border-zinc-100 dark:border-zinc-800 sticky top-0 z-10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/chat" className="font-bold text-sm">Baby Timelapse</Link>
+            <Logo href="/chat" size={24} />
             <nav className="flex items-center gap-3 text-sm text-zinc-500">
               <Link href="/chat" className="hover:text-zinc-900 dark:hover:text-zinc-100">Түүх</Link>
               <Link href="/chat/album" className="hover:text-zinc-900 dark:hover:text-zinc-100">Цомог</Link>
