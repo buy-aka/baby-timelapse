@@ -32,17 +32,23 @@ export async function GET(
     .where(eq(familyMember.familyId, id))
     .orderBy(familyMember.createdAt)
 
-  const pending = await db
+  const pendingRows = await db
     .select({
       id: invitation.id,
       phone: invitation.phone,
       role: invitation.role,
+      token: invitation.token,
       createdAt: invitation.createdAt,
       expiresAt: invitation.expiresAt,
     })
     .from(invitation)
     .where(and(eq(invitation.familyId, id), isNull(invitation.acceptedAt)))
     .orderBy(invitation.createdAt)
+
+  // Урилгын token нь нэгдэх нууц түлхүүр — зөвхөн урих эрхтэй хүнд буцаана
+  // (тэд линкийг дахин авч дахин илгээх боломжтой). Бусад гишүүнд нуулт.
+  const canInvite = role === "owner" || role === "parent"
+  const pending = pendingRows.map((p) => (canInvite ? p : { ...p, token: undefined }))
 
   return NextResponse.json({ members, pending })
 }

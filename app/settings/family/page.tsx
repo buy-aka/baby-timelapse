@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import QRCode from "qrcode"
-import { Users, Phone, X, Send, Copy, Check, Share2 } from "lucide-react"
+import { Phone, X, Send, Copy, Check, Share2, Link2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -28,6 +28,7 @@ interface PendingInvite {
   id: string
   phone: string | null
   role: string
+  token?: string | null
   createdAt: string
   expiresAt: string
 }
@@ -39,6 +40,67 @@ const ROLE_LABEL: Record<string, string> = {
   viewer: "Үзэгч",
 }
 
+// Урилгын холбоос + QR + хуулах/хуваалцах — шинэ ба хүлээгдэж буй урилгад хоёуланд.
+function InviteLinkBox({ url }: { url: string }) {
+  const [qr, setQr] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    QRCode.toDataURL(url, { width: 220, margin: 1, color: { dark: "#123f31", light: "#ffffff" } })
+      .then(setQr)
+      .catch(() => setQr(null))
+  }, [url])
+
+  const copy = () => {
+    navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  const share = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Гэр бүлийн урилга",
+          text: "Horom дээр хүүхдийн өсөлтийн дурсамжид нэгдээрэй:",
+          url,
+        })
+      } catch {
+        /* хэрэглэгч болих */
+      }
+    } else {
+      copy()
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-3 p-4 rounded-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+      <p className="text-xs text-zinc-500 text-center">
+        Доорх QR эсвэл холбоосыг урьж буй хүндээ илгээгээрэй
+      </p>
+      {qr && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={qr} alt="Урилгын QR код" width={180} height={180} className="rounded-lg" />
+      )}
+      <div className="flex items-center gap-2 w-full">
+        <code className="flex-1 text-xs truncate text-zinc-600 dark:text-zinc-300 px-2 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800">
+          {url}
+        </code>
+        <button
+          onClick={copy}
+          className="w-8 h-8 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-500 shrink-0"
+          aria-label="Холбоос хуулах"
+        >
+          {copied ? <Check size={14} /> : <Copy size={14} />}
+        </button>
+      </div>
+      <Button size="sm" variant="outline" className="w-full" onClick={share}>
+        <Share2 size={13} className="mr-1.5" />
+        Хуваалцах
+      </Button>
+    </div>
+  )
+}
+
 export default function FamilyPage() {
   const [families, setFamilies] = useState<Family[]>([])
   const [activeFamily, setActiveFamily] = useState<Family | null>(null)
@@ -47,8 +109,7 @@ export default function FamilyPage() {
   const [invitePhone, setInvitePhone] = useState("")
   const [inviteRole, setInviteRole] = useState<"parent" | "member" | "viewer">("member")
   const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null)
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [openInviteId, setOpenInviteId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -65,14 +126,6 @@ export default function FamilyPage() {
       setPending(data.pending || [])
     })
   }, [activeFamily])
-
-  // Урилгын холбоос үүсмэгц QR код зурна.
-  useEffect(() => {
-    if (!lastInviteUrl) { setQrDataUrl(null); return }
-    QRCode.toDataURL(lastInviteUrl, { width: 220, margin: 1, color: { dark: "#123f31", light: "#ffffff" } })
-      .then(setQrDataUrl)
-      .catch(() => setQrDataUrl(null))
-  }, [lastInviteUrl])
 
   const sendInvite = async () => {
     if (!activeFamily || !invitePhone.trim()) return
@@ -107,30 +160,9 @@ export default function FamilyPage() {
     setMembers(m.members || [])
   }
 
-  const copyInviteUrl = () => {
-    if (!lastInviteUrl) return
-    navigator.clipboard.writeText(lastInviteUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const shareInvite = async () => {
-    if (!lastInviteUrl) return
-    // Мобайл дээр native share хуудас нээгдэнэ (Messenger, мессеж гэх мэт).
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${activeFamily?.name} — гэр бүлийн урилга`,
-          text: "Horom дээр хүүхдийн өсөлтийн дурсамжид нэгдээрэй:",
-          url: lastInviteUrl,
-        })
-      } catch {
-        // Хэрэглэгч болих — алдаа биш.
-      }
-    } else {
-      copyInviteUrl()
-    }
-  }
+  // Урилгын token-оос бүтэн холбоос үүсгэнэ (одоогийн домэйнээр).
+  const inviteUrlFor = (token: string) =>
+    `${window.location.origin}/invite/${token}`
 
   if (!activeFamily) {
     return <p className="text-sm text-zinc-500">Гэр бүл олдсонгүй</p>
@@ -194,14 +226,28 @@ export default function FamilyPage() {
           <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">Урилга хүлээж буй</h3>
           <div className="flex flex-col gap-2">
             {pending.map(p => (
-              <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700">
-                <Phone size={16} className="text-zinc-400" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{p.phone || "Дугааргүй"}</p>
-                  <p className="text-xs text-zinc-500">
-                    {ROLE_LABEL[p.role]} · {new Date(p.expiresAt).toLocaleDateString("mn-MN")}-нд дуусна
-                  </p>
+              <div key={p.id} className="flex flex-col gap-3 p-3 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700">
+                <div className="flex items-center gap-3">
+                  <Phone size={16} className="text-zinc-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate">{p.phone || "Дугааргүй"}</p>
+                    <p className="text-xs text-zinc-500">
+                      {ROLE_LABEL[p.role]} · {new Date(p.expiresAt).toLocaleDateString("mn-MN")}-нд дуусна
+                    </p>
+                  </div>
+                  {canInvite && p.token && (
+                    <button
+                      onClick={() => setOpenInviteId(openInviteId === p.id ? null : p.id)}
+                      className="flex items-center gap-1.5 text-xs font-medium text-brand hover:underline shrink-0"
+                    >
+                      <Link2 size={13} />
+                      {openInviteId === p.id ? "Хаах" : "Холбоос"}
+                    </button>
+                  )}
                 </div>
+                {canInvite && p.token && openInviteId === p.id && (
+                  <InviteLinkBox url={inviteUrlFor(p.token)} />
+                )}
               </div>
             ))}
           </div>
@@ -241,33 +287,7 @@ export default function FamilyPage() {
               Урилга үүсгэх
             </Button>
 
-            {lastInviteUrl && (
-              <div className="flex flex-col items-center gap-3 p-4 rounded-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
-                <p className="text-xs text-zinc-500 text-center">
-                  Доорх QR эсвэл холбоосыг урьж буй хүндээ илгээгээрэй
-                </p>
-                {qrDataUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={qrDataUrl} alt="Урилгын QR код" width={180} height={180} className="rounded-lg" />
-                )}
-                <div className="flex items-center gap-2 w-full">
-                  <code className="flex-1 text-xs truncate text-zinc-600 dark:text-zinc-300 px-2 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800">
-                    {lastInviteUrl}
-                  </code>
-                  <button
-                    onClick={copyInviteUrl}
-                    className="w-8 h-8 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-500 shrink-0"
-                    aria-label="Холбоос хуулах"
-                  >
-                    {copied ? <Check size={14} /> : <Copy size={14} />}
-                  </button>
-                </div>
-                <Button size="sm" variant="outline" className="w-full" onClick={shareInvite}>
-                  <Share2 size={13} className="mr-1.5" />
-                  Хуваалцах
-                </Button>
-              </div>
-            )}
+            {lastInviteUrl && <InviteLinkBox url={lastInviteUrl} />}
           </div>
         </section>
       )}
