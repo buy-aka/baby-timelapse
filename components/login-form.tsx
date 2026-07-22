@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LogoMark } from "@/components/logo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -193,15 +194,21 @@ export function LoginForm({
   return (
     <div
       className={cn(
-        "min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-blue-50 p-6",
+        "min-h-screen flex items-center justify-center p-6",
+        "bg-gradient-to-br from-emerald-50 via-white to-amber-50",
+        "dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900",
         className
       )}
       {...props}
     >
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="text-5xl mb-4">🌱</div>
-          <h1 className="text-3xl font-bold tracking-tight">Horom</h1>
+          <div className="flex justify-center mb-4">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-deep">
+              <LogoMark size={30} tone="light" />
+            </span>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-brand-deep dark:text-brand-cream">Horom</h1>
           <p className="mt-3 text-muted-foreground">
             Хүүхдийнхээ өсөлтийн мөч бүрийг
             <br />
