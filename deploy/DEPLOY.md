@@ -208,6 +208,25 @@ docker compose -f docker-compose.prod.yml exec -T postgres \
   Basic/туршилт 7 хоногт 1, Plus өдөрт 1 (`video_download` хүснэгтээр,
   амжилттай үүссэний дараа л тоологдоно).
 
+## DataGrip / DBeaver-ээс холбогдох (SSH tunnel)
+
+Postgres нь зөвхөн серверийн `127.0.0.1:5432`-д нээлттэй (интернэтэд ил биш).
+Холбогдохын тулд DB tool-ийн SSH tunnel-ийг ашиглана:
+
+**SSH tunnel:**
+- Host: `103.41.113.114`, Port: `22`
+- User: `ubuntu`
+- Auth: **Key pair** → `babykey.pem`
+
+**Database (tunnel-ийн цаана):**
+- Host: `localhost` (эсвэл `127.0.0.1`), Port: `5432`
+- Database: `baby_timelapse`
+- User: `app`
+- Password: `.env`-ийн `POSTGRES_PASSWORD`
+
+> ⚠️ Энэ бол **бодит production** өгөгдөл. Устгах/өөрчлөх query-д болгоомжтой
+> хандана. Зөвхөн харах бол read-only горим/эрх ашиглахыг зөвлөнө.
+
 ## Backup (автомат)
 
 `deploy/backup.sh` нь Postgres-ийн логик dump + MinIO зургийн volume-ийн
