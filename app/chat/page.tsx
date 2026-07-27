@@ -5,6 +5,7 @@ import Timeline from '@/components/timeline'
 import UploadPhoto from '@/components/upload-photo'
 import BabySelector, { type BabyOption } from '@/components/baby-selector'
 import VideoDownload from '@/components/video-download'
+import { PendingInviteBanner } from '@/components/pending-invite-banner'
 
 export default function Page() {
   const [babies, setBabies] = useState<BabyOption[]>([])
@@ -20,6 +21,9 @@ export default function Page() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="mb-4">
+        <PendingInviteBanner />
+      </div>
       <div className="flex items-center justify-between mb-4 gap-3">
         <BabySelector
           babies={babies}

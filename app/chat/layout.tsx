@@ -4,7 +4,7 @@ import { headers } from "next/headers"
 import { Settings } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { getBillingStatus, resolveSubscription } from "@/lib/billing"
-import { getUserBabyIds, getUserPrimaryFamily } from "@/lib/tenant"
+import { getPendingInvitesForUser, getUserBabyIds, getUserPrimaryFamily } from "@/lib/tenant"
 import { Logo } from "@/components/logo"
 import { LogoutButton } from "@/components/logout-button"
 import { ThemeSwitcher } from "@/components/theme-switcher"
@@ -14,7 +14,14 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
   if (!session) redirect("/auth/login")
 
   const babyIds = await getUserBabyIds(session.user.id)
-  if (babyIds.length === 0) redirect("/onboarding")
+  if (babyIds.length === 0) {
+    // Хүүхэдгүй ч утсаар нь урилга хүлээж байвал onboarding биш урилга руу
+    // чиглүүлнэ — ингэснээр урьсан гэр бүлдээ нэгдэнэ (өөрийн шинэ гэр бүл
+    // үүсгэхийн оронд).
+    const pending = await getPendingInvitesForUser(session.user.id)
+    if (pending.length > 0) redirect(`/invite/${pending[0].token}`)
+    redirect("/onboarding")
+  }
 
   // Багцын хугацаа дууссан бол зөвхөн сануулга — үзэх эрх хэвээрээ,
   // харин зураг нэмэхийг API тал хориглоно.

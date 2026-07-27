@@ -1,6 +1,50 @@
 import { db } from "@/lib/db"
-import { baby, family, familyMember, FamilyRole } from "@/lib/db/schema"
-import { and, eq } from "drizzle-orm"
+import { baby, family, familyMember, invitation, user, FamilyRole } from "@/lib/db/schema"
+import { and, desc, eq, gt, isNull } from "drizzle-orm"
+
+export type PendingInvite = {
+  token: string
+  role: FamilyRole
+  familyId: string
+  familyName: string
+  invitedByName: string
+}
+
+/**
+ * Хэрэглэгчийн баталгаажсан утсаар нь ирсэн, хараахан хүлээж аваагүй,
+ * хугацаа дуусаагүй урилгууд. Аль хэдийн гишүүн болсон гэр бүлийг хасна.
+ * (Урьсан хүн урьж буй хүний утсыг оруулдаг тул утсаар тааруулна.)
+ */
+export async function getPendingInvitesForUser(userId: string): Promise<PendingInvite[]> {
+  const [u] = await db.select({ phone: user.phone }).from(user).where(eq(user.id, userId)).limit(1)
+  if (!u?.phone) return []
+
+  const memberRows = await db
+    .select({ familyId: familyMember.familyId })
+    .from(familyMember)
+    .where(eq(familyMember.userId, userId))
+  const inFamilies = new Set(memberRows.map((r) => r.familyId))
+
+  const rows = await db
+    .select({
+      token: invitation.token,
+      role: invitation.role,
+      familyId: invitation.familyId,
+      familyName: family.name,
+      invitedByName: user.name,
+    })
+    .from(invitation)
+    .innerJoin(family, eq(family.id, invitation.familyId))
+    .innerJoin(user, eq(user.id, invitation.invitedBy))
+    .where(and(
+      eq(invitation.phone, u.phone),
+      isNull(invitation.acceptedAt),
+      gt(invitation.expiresAt, new Date()),
+    ))
+    .orderBy(desc(invitation.createdAt))
+
+  return rows.filter((r) => !inFamilies.has(r.familyId))
+}
 
 /** Хэрэглэгчийн хандах эрхтэй бүх baby-ийн ID-нуудыг буцаана */
 export async function getUserBabyIds(userId: string): Promise<string[]> {

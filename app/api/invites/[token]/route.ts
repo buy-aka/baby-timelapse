@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { invitation, family, familyMember, user } from "@/lib/db/schema"
-import { getFamilyMemberCount } from "@/lib/tenant"
+import { invitation, family, familyMember, baby, user } from "@/lib/db/schema"
+import { getFamilyMemberCount, getUserOwnedFamily } from "@/lib/tenant"
 import { MAX_INVITED_MEMBERS } from "@/lib/plans"
 import { and, eq } from "drizzle-orm"
 import { headers } from "next/headers"
@@ -85,6 +85,22 @@ export async function POST(
     .update(invitation)
     .set({ acceptedAt: new Date() })
     .where(eq(invitation.id, inv.id))
+
+  // Бүртгэлийн үед автоматаар үүссэн илүүдэл хоосон гэр бүлийг цэвэрлэнэ:
+  // хэрэглэгч өөрөө эзэмшдэг, зурагтай хүүхэдгүй, ганцаараа гишүүнтэй бол
+  // (урьсан гэр бүлдээ нэгдсэн тул тэр хоосон гэр бүл нь илүүдэл).
+  const ownedId = await getUserOwnedFamily(session.user.id)
+  if (ownedId && ownedId !== inv.familyId) {
+    const babies = await db
+      .select({ id: baby.id })
+      .from(baby)
+      .where(eq(baby.familyId, ownedId))
+      .limit(1)
+    const memberCount = await getFamilyMemberCount(ownedId)
+    if (babies.length === 0 && memberCount === 1) {
+      await db.delete(family).where(eq(family.id, ownedId))
+    }
+  }
 
   return NextResponse.json({ success: true, familyId: inv.familyId })
 }
